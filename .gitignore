@@ -1,0 +1,44 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.cache
+*.ilk
+*.log
+*.obj
+*.pdb
+*.tlog
+*.idb
+*.pch
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Oo]ut/
+*.rsuser
+*.vcxproj.user
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+*.csproj.iml
+*.DotSettings.user
+*.pid

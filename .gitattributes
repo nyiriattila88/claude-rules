@@ -1,0 +1,2 @@
+# Line endings: normalize to LF in the repository (fixes "CRLF will be replaced by LF" warning)
+* text=auto eol=lf

@@ -33,10 +33,64 @@ Other layouts (e.g. multiple stacks per env like `environments/dev/common`, `env
 
 - **versions.tf:** Pin `required_providers` (e.g. `hashicorp/aws` with version).
 - **variables.tf:** Declare all inputs (e.g. `environment`, `aws_region`); add descriptions and types.
-- **locals.tf:** Non-sensitive derived values (e.g. `service_name`, `ssm_prefix`) used in resources.
+- **locals.tf:** Non-sensitive derived values (e.g. `service_name`, `ssm_prefix`) shared across more than one file (see File organization below).
 - **data.tf:** Data sources (e.g. `aws_caller_identity`, `aws_region`, VPC, subnets, security groups) used by the module.
 - Resource files: group by concern (e.g. `ecs.tf`, `iam.tf`, `lb.tf`, `apigateway.tf`, `dynamodb.tf`).
 - **outputs.tf:** Output only what other stacks or pipelines need; add descriptions.
+
+## File organization
+
+Two independent rules keep a module navigable: **where a `local` is declared**, and **when a file is split**.
+
+### Locals: shared in `locals.tf`, single-use may stay in place
+
+- **Shared locals go in `locals.tf`.** Any `local` referenced from more than one file belongs in the module's central `locals.tf`, so there is one source of truth and no guessing which file owns the value.
+- **Single-use locals may stay in their file.** A `local` used by only one file may be declared in that file (in its own `locals { }` block), keeping the value next to the resources that use it. Promote it to `locals.tf` the moment a second file needs it.
+
+#### ✅ DO
+
+```hcl
+# locals.tf — service_name is used by ecs.tf AND iam.tf, so it lives centrally.
+locals {
+  service_name = "${var.component_name}-${var.environment}"
+}
+```
+
+```hcl
+# cloudwatch_alarms.tf — this threshold is used only here, so keeping it in-file is fine.
+locals {
+  cpu_alarm_threshold = 80
+}
+```
+
+#### ❌ DON'T
+
+```hcl
+# ecs.tf — service_name is also referenced from iam.tf, so it must not be
+# buried in one resource file; move it to locals.tf.
+locals {
+  service_name = "${var.component_name}-${var.environment}"
+}
+```
+
+### Split long files by concern
+
+When a single resource file grows large — typically `apigateway.tf` with many routes/integrations, or a CloudWatch file holding both dashboards and alarms — split it into concern-named files instead of letting one file own everything. Keep the names descriptive and concern-based (`<concern>.tf`).
+
+#### ✅ DO
+
+```text
+cloudwatch_dashboard.tf     # dashboard(s)
+cloudwatch_alarms.tf        # metric alarms
+apigateway_routes.tf        # routes + integrations
+apigateway_authorizers.tf   # authorizers, when numerous
+```
+
+#### ❌ DON'T
+
+```text
+cloudwatch.tf   # 600 lines: dashboards, dozens of alarms, and SNS wiring in one file.
+```
 
 ## Missing CLI — check WSL before giving up
 

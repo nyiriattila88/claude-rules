@@ -92,6 +92,54 @@ apigateway_authorizers.tf   # authorizers, when numerous
 cloudwatch.tf   # 600 lines: dashboards, dozens of alarms, and SNS wiring in one file.
 ```
 
+### When a single concern is still too large
+
+Concern-based splitting is not enough when one concern is itself huge (an API Gateway with dozens of routes, a CloudWatch file with a big dashboard). Apply these in order — the goal stays the same: a maintainer can immediately tell where a given resource lives.
+
+1. **Sub-divide by sub-concern.** Split `apigateway.tf` into `apigateway_routes.tf`, `apigateway_integrations.tf`, `apigateway_authorizers.tf`; split CloudWatch into `cloudwatch_dashboard.tf` and `cloudwatch_alarms.tf`.
+2. **Collapse repetition with `for_each`/`count`.** Dozens of near-identical resources (alarms, dashboard widgets, routes) belong in one `for_each` block driven by a map/local, not N copy-pasted blocks. This shrinks a file far more than splitting it.
+3. **Externalize large inline documents.** A CloudWatch dashboard body or a long policy JSON does not belong inline in HCL — move it to `templates/<name>.json.tftpl` and load it with `templatefile(...)`. This is usually what makes a dashboard file explode.
+4. **Size cue: ~150 lines.** When one resource group passes roughly 150 lines, that is a good signal to give it its own file; below that, keep it with its concern.
+5. **Last resort — a nested module.** If a component is genuinely complex, extract it to `infra/modules/<component>/`, but keep nesting flat (one or two levels) and never wrap a single resource in a module.
+
+#### ✅ DO
+
+```hcl
+# cloudwatch_dashboard.tf — the large JSON lives in a template, not inline.
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_name = local.dashboard_name
+  dashboard_body = templatefile("${path.module}/templates/dashboard.json.tftpl", {
+    region = var.aws_region
+  })
+}
+```
+
+```hcl
+# cloudwatch_alarms.tf — one for_each instead of dozens of near-identical blocks.
+resource "aws_cloudwatch_metric_alarm" "this" {
+  for_each = local.alarms
+
+  alarm_name  = each.key
+  metric_name = each.value.metric
+  threshold   = each.value.threshold
+  # ...
+}
+```
+
+#### ❌ DON'T
+
+```hcl
+# cloudwatch.tf — a 2,000-line file: the full dashboard JSON inline plus 30
+# copy-pasted alarm blocks that differ only in name and threshold.
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_body = <<EOF
+  { ... hundreds of lines of JSON ... }
+  EOF
+}
+```
+
+> Sources: HashiCorp Terraform Style Guide (file names, local values) and AWS Prescriptive Guidance — *Best practices for code base structure* (service-named files, the ~150-line cue, externalizing lengthy documents).
+
 ## Missing CLI — check WSL before giving up
 
 If `tofu` (OpenTofu) or `terragrunt` (or `terraform`) is **not installed** on the host, do not stop. On Windows the tool is often installed inside **WSL** instead.

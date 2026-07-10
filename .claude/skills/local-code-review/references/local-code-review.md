@@ -1,58 +1,71 @@
 # Local code review
 
-How to perform a **local** code review when the user asks for one (e.g. "review-eld", "csinálj code review-t", "nézd át a változásokat", "/review"). The review stays on the local machine: findings are written into the working-tree files as inline comments and optional suggestions (so they show up in `git diff`), and summarized in chat — never as remote PR comments.
+How to perform a **local** code review of the **currently checked-out feature branch** when the user asks for one (e.g. "review-eld", "csinálj code review-t", "nézd át a változásokat", "/review"). Everything stays on the local machine and produces **two outputs, both required**:
+
+1. **Inline comments on the code** — every point you would leave as a PR review comment is written into the working-tree file at the relevant line, so it shows up in `git diff`.
+2. **A console (chat) summary** — a written account of what you found overall, grouped and severity-tagged, with clickable `path:line` links.
+
+Never post to the remote, never create a PR comment, never commit, never push.
 
 ## When this applies
 
-- Triggered only when the user explicitly asks for a code review. Do not review unprompted.
-- First decide whether this repo is one that **normally uses PRs**, then derive the base the PR would branch from (see below). If the repo has no remote, treat the diff against the local default branch instead — still review locally.
+- Triggered only when the user explicitly asks for a review. Do not review unprompted.
+- The subject is the **feature branch that is currently checked out**: review the work on this branch against the base it branches from. Do not switch branches.
 
-## Detect PR context and the review base
+## What to review — the current feature branch
 
-Inspect the git repository to find where the PR's commits start, then review the diff from that base to the current work.
+Review the diff of the current branch against its base, plus any uncommitted local work.
 
-1. **Remote present?** `git remote -v`. A remote (especially `origin`) indicates a PR-style workflow.
-2. **Default/base branch:** resolve in this order:
+1. **Base branch** — resolve in this order:
    - `git symbolic-ref --quiet refs/remotes/origin/HEAD` → e.g. `refs/remotes/origin/main`.
-   - If unset: `git remote show origin` (read "HEAD branch"), or fall back to the first existing of `origin/main`, `origin/master`, `origin/develop`.
-   - No remote at all: use the local default branch (`main`/`master`).
-3. **Divergence point:** `git merge-base <base> HEAD` — this is where the branch's PR commits start.
-4. **Review range:** the committed branch diff plus any uncommitted local work:
-   - Committed: `git diff <merge-base>...HEAD`
-   - Working tree: `git diff HEAD` (staged + unstaged), so the review covers everything not yet pushed.
+   - If unset: `git remote show origin` (read "HEAD branch"), or the first existing of `origin/main`, `origin/master`, `origin/develop`.
+   - No remote at all: the local default branch (`main`/`master`).
+2. **Divergence point:** `git merge-base <base> HEAD` — where this feature branch's commits start.
+3. **Review range** — everything on the branch that is not yet in the base:
+   - Committed on the branch: `git diff <merge-base>...HEAD`
+   - Uncommitted local work: `git diff HEAD` (staged + unstaged)
 
 Read only the changed files/ranges relevant to the diff (token economy); don't re-read the whole tree.
 
-## Deliver the review locally — never to the remote
+## Output 1 — inline comments on the code (what you'd write on the PR)
 
-- **Hungarian prose, professional tone, terse.** One short point per finding. Keep technical/industry terms in their canonical (usually English) form — do not translate `nullable`, `race condition`, `cold start`, `dependency injection`, etc. See [[documentation-style]] (technical terms — don't translate).
-- **Inline review notes (default):** write each finding as a comment at the relevant line in the working-tree file, using a distinct marker (e.g. `// REVIEW(fontos): …`) so it appears in `git diff` and is trivial to find and revert. Mirror it in a short chat summary with a clickable `path/to/file.cs:42`, grouped by file, ordered by line.
-- **Suggestions:** when a concrete fix is clearer than prose, apply it in the file (visible in `git diff`) or show it as a fenced `diff`/replacement snippet. This mirrors a PR "suggestion" but stays local.
-- **Severity, optionally:** prefix with a short tag (`blocker` / `fontos` / `nit`) so the user can triage quickly. Keep it optional and lightweight.
+- For **every** point you would leave as a PR review comment, write it into the working-tree file **at the line it refers to** (on or directly above the offending line), using a distinct marker so it is trivial to find and revert:
+  - `// REVIEW(blocker): …`, `// REVIEW(fontos): …`, `// REVIEW(nit): …`
+  - Use the comment syntax of the file's language (`//`, `#`, `--`, `<!-- … -->`, …).
+- **Hungarian prose, terse — one point per comment.** Keep technical/industry terms in their canonical (usually English) form — do not translate `nullable`, `race condition`, `cancellation token`, `dependency injection`, etc. See [[documentation-style]].
+- **Concrete fix?** When a fix is clearer than prose, either apply it in the file (visible in `git diff`) or add it as a fenced snippet inside the comment — the local equivalent of a PR "suggestion".
+- The severity tag (`blocker` / `fontos` / `nit`) goes inside the marker so the user can triage in the diff.
+
+## Output 2 — the console summary
+
+After annotating the code, write a short **Hungarian** summary in chat so the user sees the review without opening every file:
+
+- A one-line overall verdict + counts (e.g. `2 blocker, 3 fontos, 1 nit`).
+- Each finding as a bullet with a clickable `path/to/file.cs:42`, grouped by file, ordered by line, with the same severity tag as the inline comment.
+- Keep it terse; the detail lives in the inline comments, the console is the map to them.
 
 ## Hard constraints (never violate)
 
 - **Never push, never commit, never publish to the remote.** No `git push`, no PR creation, no remote comment API, no MCP call that posts to a PR/issue. The review is local-only output.
-- **Editing the working tree is authorized by a review request.** Asking for a review grants standing permission to write review comments and suggestion edits directly into the affected files at the relevant lines — that is how the user reads the review in `git diff`. No separate confirmation is needed for these edits. Still **never stage, commit, or push** them.
+- **Editing the working tree is authorized by the review request.** Writing `REVIEW` comments and suggestion edits into the affected files is exactly how the user reads the review in `git diff`; no separate confirmation is needed for these edits. Still **never stage, commit, or push** them.
 - See [[git-conventions]] for the push/commit permission model — this rule is stricter: code-review output is never committed or pushed under any circumstance.
 
 ## ✅ DO
 
+Inline comment in the file, at the offending line (this is what you'd write on the PR):
+
+```csharp
+// REVIEW(fontos): a `cancellationToken` nincs átadva a `SaveAsync`-nek,
+// így a művelet nem cancelálható.
+await _repository.SaveAsync(order);
+```
+
+Then the console summary, mirroring it with a clickable link:
+
 ```text
-A merge-base origin/main…HEAD diffet review-elem, magyarul, lokálisan.
-A találatokat a fájlokba írom REVIEW-kommentként az érintett soroknál,
-ahol kell suggestionnel — látszik a git diffben. Nem commitolok, nem pusholok.
+Review: feature/orders (base: origin/main) — 0 blocker, 1 fontos, 0 nit.
+- src/Order/OrderProcessor.cs:42 — fontos: `cancellationToken` nincs átadva a `SaveAsync`-nek.
 ```
-
-````text
-src/Order/OrderProcessor.cs:42 — fontos: a `cancellationToken` nincs
-átadva a `SaveAsync` hívásnak, így a művelet nem cancelálható.
-
-```diff
-- await _repository.SaveAsync(order);
-+ await _repository.SaveAsync(order, cancellationToken);
-```
-````
 
 ## ❌ DON'T
 
@@ -63,6 +76,11 @@ src/Order/OrderProcessor.cs:42 — fontos: a `cancellationToken` nincs
 ```text
 (A working tree-be írt review-komment vagy suggestion commitolása/pusholása —
 a fájlmódosítás OK és látszik a diffben, de commit/push SOHA.)
+```
+
+```text
+(Csak chatben összefoglalni, a kódra nem téve kommentet — vagy fordítva, csak a
+kódba írni, console-összefoglaló nélkül. Mindkét kimenet kötelező.)
 ```
 
 ```text

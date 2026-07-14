@@ -56,7 +56,7 @@ After linking, `dotnet`, `terraform`, and `local-code-review` are triggerable fr
 | `communication-language.md` | Reply in Hungarian by default (incl. visible reasoning/process text); mirror the user's language; keep technical terms untranslated. |
 | `file-format-preservation.md` | Preserve file encoding, line endings, indentation during edits. |
 | `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |
-| `git-conventions.md` | Commit message format, no AI-tool markers, push only with permission, small commits. |
+| `git-conventions.md` | Jira `[NX-32472]` commit prefix, `feature/NX-32472_purpose` branch naming, commit message format, no AI-tool markers, push only with permission, small commits. |
 | `git-line-endings.md` | `.gitattributes` policy and CRLF/LF normalization. |
 
 ## Skills (on-demand, `.claude/skills/`)

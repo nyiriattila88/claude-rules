@@ -1,5 +1,5 @@
 ---
-description: Git commit and workflow conventions – Jira ID, message format, small commits, no push.
+description: Git commit and workflow conventions – Jira ID prefix, branch naming, message format, small commits, no push.
 globs: "**/*"
 alwaysApply: false
 ---
@@ -12,11 +12,16 @@ When working with Git in this repository, follow these rules.
 
 - Commit messages must be **single-line only** (no body, no second line).
 - Maximum commit message length is **70 characters**.
-- If a Jira issue ID is available, start with `[JIRA-123] ` prefix.
+- If a Jira issue ID is available (e.g. the user gives `NX-32472`), start the message with a `[NX-32472] ` prefix so the commit is tied to its ticket, e.g. `[NX-32472] Initialize repository`.
+- The prefix format is `[<PROJECT-KEY>-<NUMBER>] <summary>` for any Jira project key (`NX`, `PROJ`, …); keep the ID in its Jira casing (uppercase), and keep the whole line within the 70-character limit.
 - If no Jira issue ID is available, do **not** force a Jira prefix.
 - Never include AI tool markers in commit metadata or messages, including but not limited to: `Made-with: Cursor`, `Made-with: Claude`, `Co-Authored-By: Claude`, `Co-Authored-By: Claude Code`, `🤖 Generated with Claude Code`, or any similar attribution to an AI assistant.
 
 ### ✅ DO
+
+```
+[NX-32472] Initialize repository
+```
 
 ```
 [PROJ-123] Add locked restore CI rule
@@ -48,6 +53,35 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ```
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+## Branch naming
+
+- When working on a specific Jira task, name the feature branch after its ticket: `feature/<JIRA-ID>_<purpose>`.
+- Start with `feature/`, then the Jira ID in its Jira casing, then an **underscore**, then a short snake_case description of the ticket's goal (lowercase words joined by underscores).
+- Keep the purpose part short but descriptive — it says *why* the branch exists, matching the ticket's intent.
+- Same `[<PROJECT-KEY>-<NUMBER>]` prefix belongs on every commit made on that branch (see **Commit message format**).
+
+### ✅ DO
+
+```
+feature/NX-32472_initialize_repository
+```
+
+```
+feature/NX-32472_add_jira_commit_prefix_rule
+```
+
+### ❌ DON'T
+
+```
+(No ticket reference, no purpose — nothing ties the branch to its Jira task:)
+feature/new-stuff
+```
+
+```
+(Purpose joined with dashes instead of underscores — use `_` after the ID and between words:)
+feature/NX-32472-initialize-repository
 ```
 
 ## Commit size and scope

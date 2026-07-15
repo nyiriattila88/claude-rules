@@ -45,6 +45,7 @@ After linking, `dotnet`, `terraform`, and `local-code-review` are triggerable fr
 @.claude/rules/documentation-style.md
 @.claude/rules/git-conventions.md
 @.claude/rules/git-line-endings.md
+@.claude/rules/session-naming.md
 
 ## What each core rule covers
 
@@ -58,6 +59,7 @@ After linking, `dotnet`, `terraform`, and `local-code-review` are triggerable fr
 | `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |
 | `git-conventions.md` | Jira `[NX-32472]` commit prefix, `feature/NX-32472_purpose` branch naming, commit message format, no AI-tool markers, push only with permission, small commits. |
 | `git-line-endings.md` | `.gitattributes` policy and CRLF/LF normalization. |
+| `session-naming.md` | Start each session title with the repo/folder name so sessions stay scannable across projects. |
 
 ## Skills (on-demand, `.claude/skills/`)
 

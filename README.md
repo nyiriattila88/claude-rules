@@ -32,6 +32,7 @@ claude-rules/
       documentation-style.md
       git-conventions.md
       git-line-endings.md
+      session-naming.md
     skills/                        # domain, on-demand
       dotnet/
         SKILL.md

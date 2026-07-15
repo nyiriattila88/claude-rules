@@ -53,7 +53,7 @@ After linking, `dotnet`, `terraform`, and `local-code-review` are triggerable fr
 |------|--------|
 | `claude-rules-source.md` | Mandatory first-action read + reply marker line. **Always applies.** |
 | `claude-meta-rule.md` | How Claude must edit `*.md` rule files in this repo. |
-| `token-economy.md` | **Critical:** minimize token consumption; trade speed (not quality) for fewer tokens; **parallel agents / fan-out workflows need explicit permission, even under ultracode.** |
+| `token-economy.md` | **Critical:** minimize token consumption; trade speed (not quality) for fewer tokens; **fan-out / multiple parallel agents need explicit permission (even under ultracode) — one `+1` parallel agent is allowed sparingly to save time.** |
 | `communication-language.md` | Reply in Hungarian by default (incl. visible reasoning/process text); mirror the user's language; keep technical terms untranslated. |
 | `file-format-preservation.md` | Preserve file encoding, line endings, indentation during edits. |
 | `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |

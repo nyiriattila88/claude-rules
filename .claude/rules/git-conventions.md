@@ -84,6 +84,25 @@ feature/new-stuff
 feature/NX-32472-initialize-repository
 ```
 
+### Worktree branches
+
+- Working inside a **worktree** does **not** force the harness default `claude/` branch prefix. If the user asks for a feature branch, create exactly what they asked for — the same `feature/<JIRA-ID>_<purpose>` convention above applies in a worktree too.
+- The `claude/…` prefix is only a fallback for when the user gave **no** branch instruction. An explicit request (a ticket, a name, or "csinálj feature branchet") always wins over it, worktree or not.
+
+#### ✅ DO
+
+```
+(User asked for a feature branch on NX-32472 while working in a worktree:)
+feature/NX-32472_add_worktree_branch_rule
+```
+
+#### ❌ DON'T
+
+```
+(Forcing the `claude/` prefix in a worktree even though the user asked for a feature branch:)
+claude/add-worktree-branch-rule
+```
+
 ## Commit size and scope
 
 - **Commit small, logically related changes.** One commit = one logical change (e.g. one fix, one feature step, one refactor). Avoid mixing unrelated edits or huge multi-file dumps in a single commit.

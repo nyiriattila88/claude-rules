@@ -19,6 +19,7 @@ A részletes szabály a `references/devils-advocate-review.md`-ben van. **Olvasd
 
 ## A lényeg (mielőtt belekezdesz)
 
+- **Forrás (a kanonikus prompt):** a perszóna és a szekciók az Aether pipeline `job_template_anthropic_ai_pr_review_devils_advocate.yml` (`.azure-pipelines/`) template lokális adaptációi. Az a pipeline **remote PR-kommentbe** ír; ez a skill **ugyanazt a promptot lokálisan** futtatja (checked-out branch a base-hez képest, chat-verdikt + inline `REVIEW` kommentek, **soha** remote). Részletek: `references/devils-advocate-review.md`.
 - **Mi ez:** a [[local-code-review]] skill adverzális perszónában. A mechanika **ugyanaz** (mit review-elsz: a checked-out feature branch a base-hez képest; base-detektálás; a SOHA-push/commit/remote kényszer) — csak a *lencse* kritikusabb, és egy **strukturált verdiktet** ad a chatbe.
 - **Két kimenet:**
   1. **Strukturált verdikt a chatbe** (magyar) — 8 szekció: 🔴 Kritikus problémák, 🟠 Fő aggályok, 🟡 Megkérdőjelezett feltevések, 🔵 Vakfoltok, ⚪ Hallucináció-kockázat, 🔄 Legerősebb ellenérv, ✅ Ami megállja a helyét, 📋 Javasolt lépések. Üres szekciót hagyj ki.

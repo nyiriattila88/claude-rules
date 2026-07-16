@@ -57,6 +57,9 @@ claude-rules/
       local-code-review/
         SKILL.md
         references/local-code-review.md
+      devils-advocate-review/
+        SKILL.md
+        references/devils-advocate-review.md
   README.md
   .gitignore
   .gitattributes
@@ -76,7 +79,7 @@ macOS/Linux:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, and `local-code-review` trigger from any project.
+After linking, `dotnet`, `terraform`, `local-code-review`, and `devils-advocate-review` trigger from any project.
 
 ## Using with a symlink (recommended)
 

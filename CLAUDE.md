@@ -69,5 +69,5 @@ Each skill is a thin `SKILL.md` (trigger + index) over the detailed rule files i
 |------|-------------|-----------|
 | `dotnet` | C#/.NET code, `.csproj`/`.sln`/`Directory.*.props`, NuGet, xUnit, MSBuild, ASP.NET | 14 files: C# style, API, testing, repo structure, solution, dependencies, build system, locked restore, project file format, tools (consuming/publishing), NuGet (publishing/signing), benchmarking |
 | `terraform` | `.tf`/`.hcl`, `infra/`, Terragrunt/OpenTofu, `plan`/`apply`; `apply` needs permission | Terraform/Terragrunt layout, root/account/env, modules |
-| `local-code-review` | "review-eld", "/review", "nézd át a változásokat" | Local-only review in Hungarian; PR-base detection; never commit/push/publish |
-| `devils-advocate-review` | "devil's advocate", "ördög ügyvédje", "nézd át kritikusan", "stress-test-eld" | Adversarial review layered on `local-code-review`'s mechanics; structured 8-section verdict; local-only, never commit/push/publish |
+| `local-code-review` | explicit "sima / kiegyensúlyozott / enyhe / light review" kérés (nem a default) | Balanced, non-adversarial local review in Hungarian; shared mechanics source for `devils-advocate-review`; never commit/push/publish |
+| `devils-advocate-review` | **default review technika** — "review-eld", "/review", "nézd át a változásokat", + "devil's advocate", "ördög ügyvédje", "nézd át kritikusan", "stress-test-eld" | Adversarial default review on `local-code-review`'s mechanics; structured 8-section verdict; local-only, never commit/push/publish |

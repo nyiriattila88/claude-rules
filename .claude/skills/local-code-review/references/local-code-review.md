@@ -9,6 +9,7 @@ Never post to the remote, never create a PR comment, never commit, never push.
 
 ## When this applies
 
+- This is the **balanced / non-adversarial** review mode. The **default** review technique is [[devils-advocate-review]]; use this one only when the user explicitly asks for a lighter, non-critical pass. The mechanics below (what to review, base detection, the two outputs, never-push/commit) are **shared** — `devils-advocate-review` builds on them, so keep this section neutral.
 - Triggered only when the user explicitly asks for a review. Do not review unprompted.
 - The subject is the **feature branch that is currently checked out**: review the work on this branch against the base it branches from. Do not switch branches.
 

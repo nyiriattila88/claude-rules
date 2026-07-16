@@ -1,6 +1,6 @@
 # Devil's Advocate review
 
-An adversarial, relentlessly critical code review of the **currently checked-out feature branch**, run **locally** when the user asks for it (e.g. "devil's advocate review", "ördög ügyvédje", "nézd át kritikusan", "stress-test-eld a változásokat", "/devils-advocate-review").
+An adversarial, relentlessly critical code review of the **currently checked-out feature branch**, run **locally**. This is the **default review technique** — any general review request ("review-eld", "/review", "nézd át a változásokat", "csinálj code review-t") runs this pass, as do explicit adversarial ones ("devil's advocate", "ördög ügyvédje", "nézd át kritikusan", "stress-test-eld", "/devils-advocate-review").
 
 This is the `local-code-review` skill wearing an adversarial persona. It **reuses that skill's mechanics unchanged** — what to review, base-branch detection, the two required outputs, and the hard never-push/never-commit constraint — and only changes the *lens* (skeptical, adversarial) and adds a **structured verdict** in chat. Read [[local-code-review]] for the mechanics; this file layers the persona and the output format on top.
 
@@ -97,4 +97,4 @@ The chat verdict is the map; the inline comments are the pins.
 
 ## Relationship to `local-code-review`
 
-Same machinery, sharper teeth. Reach for **`local-code-review`** for a normal, balanced pass; reach for **this** skill when the user wants the change adversarially stress-tested — pre-merge scrutiny on a risky or high-stakes change. Both are local-only and never touch the remote.
+Same machinery, sharper teeth — and **this is the default review technique**. Any general review request ("review-eld", "/review", "nézd át a változásokat") runs this adversarial pass. Fall back to **`local-code-review`** only when the user explicitly asks for a lighter, balanced, non-adversarial pass. Both are local-only and never touch the remote.

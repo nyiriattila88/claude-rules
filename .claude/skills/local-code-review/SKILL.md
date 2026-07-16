@@ -1,17 +1,20 @@
 ---
 name: local-code-review
 description: >
-  Lokális code review magyarul (Nyiri Attila szabálykészlete). Használd, amikor a felhasználó
-  code review-t kér: "review-eld", "csinálj code review-t", "nézd át a változásokat", "/review".
-  A jelenleg checked-out lokális feature branchet nézi végig a base-hez képest, és KÉT kötelező
-  kimenetet ad: (1) inline REVIEW-kommentek a kódra a working-tree fájlokban (látszik a `git diff`-ben,
-  az, amit a PR-re írnál), (2) magyar szöveges összefoglaló a console-ra/chatbe. SOHA nem remote
-  PR-komment, és soha nem commitol/pushol. Trigger: code review, review, változások átnézése, diff review.
+  KIEGYENSÚLYOZOTT (nem-adverzális) lokális code review magyarul (Nyiri Attila szabálykészlete). Az
+  alapértelmezett review technika a `devils-advocate-review`; erre CSAK akkor válts, ha a felhasználó
+  KIFEJEZETTEN enyhébb, nem-kritikus, sima átnézést kér: "sima review", "csak nézd át gyorsan",
+  "kiegyensúlyozott review", "ne legyél túl kritikus", "light review". A jelenleg checked-out lokális
+  feature branchet nézi a base-hez képest, és KÉT kötelező kimenetet ad: (1) inline REVIEW-kommentek a
+  working-tree fájlokban (látszik a `git diff`-ben), (2) magyar szöveges összefoglaló a chatbe. SOHA nem
+  remote PR-komment, soha nem commitol/pushol. Ez egyben a `devils-advocate-review` közös mechanika-forrása
+  is (base-detektálás, review-range, kimenetek). Trigger: sima/kiegyensúlyozott/enyhe review, nem-adverzális
+  átnézés, light review.
 ---
 
 # Lokális code review
 
-A részletes szabály a `references/local-code-review.md`-ben van. **Olvasd be a `Read` tool-lal**, amikor review-t kérnek.
+A részletes szabály a `references/local-code-review.md`-ben van. **Olvasd be a `Read` tool-lal**, amikor kifejezetten kiegyensúlyozott/enyhe review-t kérnek. Az **alapértelmezett** review technika a [[devils-advocate-review]] — ez a skill a nem-adverzális opt-in mód, és egyben a devil's advocate közös mechanika-forrása.
 
 ## A lényeg (mielőtt belekezdesz)
 

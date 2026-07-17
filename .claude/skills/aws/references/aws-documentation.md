@@ -29,9 +29,9 @@ Trivial, high-confidence facts (e.g. "S3 stores objects") don't need a fetch. Th
 
 AWS ships an official agent tool that supersedes hand-fetching where it's installed: the **Agent Toolkit for AWS** (<https://aws.amazon.com/products/developer-tools/agent-toolkit-for-aws/>). It bridges the gap between a model's training data and current AWS capabilities. Three parts:
 
-- **AWS MCP Server** (`aws-mcp`) — a managed, remote MCP server: run AWS CLI commands, search current AWS documentation, and run curated skills, with CloudWatch monitoring and IAM controls.
+- **AWS MCP Server** (`aws-mcp`) — a managed, remote MCP server with full AWS API coverage across 300+ services: run AWS CLI commands, sandboxed script execution, real-time documentation search, and curated skills — with CloudWatch + CloudTrail monitoring and IAM controls. Managed endpoint; no local hosting required.
 - **Agent Skills** — curated packages: service decision guides, step-by-step procedures, troubleshooting guides.
-- **Agent Plugins** — install bundles for Claude Code, Cursor, Codex, and Kiro that wire the MCP server config plus the curated skills.
+- **Agent Plugins** — install bundles for Claude Code, Cursor, Codex, and Kiro that wire the MCP server config plus the curated skills. Four Claude Code bundles exist: `aws-core` (foundational services), `aws-agents` (Amazon Bedrock + AgentCore), `aws-data-analytics` (ETL / analytics), `aws-agents-for-devsecops` (security / incident response) — pick the one matching the task profile.
 
 **Claude Code — the `aws-core` plugin**, from the `claude-plugins-official` marketplace (`anthropics/claude-plugins-official`), installed here at `user` scope. Component inventory (v1.1.0): the `aws-mcp` MCP server, one PreToolUse hook (harness-only guardrail), and 15 curated skills — `amazon-bedrock`, `aws-billing-and-cost-management`, `aws-blocks`, `aws-cdk`, `aws-cloudformation`, `aws-containers`, `aws-iam`, `aws-messaging-and-streaming`, `aws-observability`, `aws-sdk-js-v3-usage`, `aws-sdk-python-usage`, `aws-sdk-swift-usage`, `aws-secrets-manager`, `aws-serverless`, `signing-in-to-aws`.
 
@@ -51,6 +51,8 @@ claude plugin install aws-core@claude-plugins-official --scope user
 **Safety — the same gate applies.** `aws-mcp` can execute AWS CLI commands, so the knowledge-not-action rule still holds: reading docs / searching is safe, but any **mutating** AWS operation stays permission-gated — ask first (see Safety & scope below).
 
 **Token cost.** `aws-core` adds ~2.1k always-on tokens to every session (curated skills load on-invoke). That's the user's opt-in; keep [[token-economy]] in mind — don't fire a curated skill or a fetch you don't need.
+
+**Open source (Apache-2.0).** The whole toolkit — MCP server and every curated skill — is public at <https://github.com/aws/agent-toolkit-for-aws> (skills live under `skills/`). Browse or audit the exact skill a task will run before trusting it. For a plugin-less agent the skills can also be pulled directly with `npx skills add aws/agent-toolkit-for-aws/skills`.
 
 ## Canonical public URL catalogue
 

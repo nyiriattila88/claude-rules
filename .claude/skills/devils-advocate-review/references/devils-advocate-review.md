@@ -78,7 +78,7 @@ Deliver the adversarial analysis in chat, in **Hungarian** (technical terms stay
 Every finding that anchors to a **specific line** also goes into the working-tree file as an inline comment, exactly per [[local-code-review]]:
 
 - `// REVIEW(blocker): …`, `// REVIEW(fontos): …`, `// REVIEW(nit): …` (use the file's comment syntax; Hungarian prose, terse).
-- **Courteous, request-style tone** (inherited from [[local-code-review]]): phrase findings politely, as requests — "Update-eld kérlek a mezőt", "érdemes lenne …". This governs *tone* and does **not** conflict with the *never sycophantic* rule below, which governs *content* (the sharpness and specificity of the critique). Polite wording, uncompromised substance.
+- **Courteous, request-style tone** (inherited from [[local-code-review]]): phrase findings politely, as requests — "Update-eld kérlek a mezőt", "érdemes lenne …". This governs *tone* and does **not** conflict with the *never sycophantic* rule below, which governs *content* (the sharpness and specificity of the critique). Polite wording, uncompromised substance. **No all-caps shouting** in the prose either — emphasis comes from precise wording, not capitals (the `REVIEW` marker and genuine acronyms/identifiers stay as-is).
 - Map severity from the verdict: 🔴 → `blocker`, 🟠 → `fontos`, 🟡/🔵/⚪ line-anchored points → `fontos` or `nit` by judgement.
 - Holistic points that don't map to one line (a missing counterargument, a scope challenge) live only in the chat verdict — don't force them onto an arbitrary line.
 

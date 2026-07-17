@@ -54,6 +54,9 @@ claude-rules/
       terraform/
         SKILL.md
         references/terraform-terragrunt.md
+      aws/
+        SKILL.md
+        references/aws-documentation.md
       local-code-review/
         SKILL.md
         references/local-code-review.md
@@ -79,7 +82,7 @@ macOS/Linux:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, `local-code-review`, and `devils-advocate-review` trigger from any project.
+After linking, `dotnet`, `terraform`, `aws`, `local-code-review`, and `devils-advocate-review` trigger from any project.
 
 ## Using with a symlink (recommended)
 

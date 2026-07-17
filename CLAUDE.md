@@ -9,7 +9,7 @@ It applies the shared rule set in `.claude/rules/` and follows the **mandatory f
 To keep the baseline context small, the rules are split into two tiers:
 
 1. **Core rules — `.claude/rules/`** — small, (almost) always-relevant rules that are **eagerly imported** below, so they are active in every session regardless of the task. These are cheap and include the safety-critical ones (reply marker, language, git/push permissions, format preservation).
-2. **Domain skills — `.claude/skills/`** — large, task-specific rule packs exposed as **Claude Code skills**. Only each skill's one-line `description` is loaded up front; the full content is pulled in **on demand** when the task triggers the skill (progressive disclosure). This is where the bulk of the tokens live (.NET, Terraform, code review).
+2. **Domain skills — `.claude/skills/`** — large, task-specific rule packs exposed as **Claude Code skills**. Only each skill's one-line `description` is loaded up front; the full content is pulled in **on demand** when the task triggers the skill (progressive disclosure). This is where the bulk of the tokens live (.NET, Terraform, AWS, code review).
 
 Rationale: the `@import` mechanism is deterministic but eager (everything loads always). Skills are lazy but model-triggered. So safety-critical, always-true rules stay in the eager **core**, and heavy, occasional domain rule sets become **skills**.
 
@@ -33,7 +33,7 @@ macOS/Linux equivalent:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, `local-code-review`, and `devils-advocate-review` are triggerable from any project.
+After linking, `dotnet`, `terraform`, `aws`, `local-code-review`, and `devils-advocate-review` are triggerable from any project.
 
 ## Core rule index (eager imports)
 
@@ -69,5 +69,6 @@ Each skill is a thin `SKILL.md` (trigger + index) over the detailed rule files i
 |------|-------------|-----------|
 | `dotnet` | C#/.NET code, `.csproj`/`.sln`/`Directory.*.props`, NuGet, xUnit, MSBuild, ASP.NET | 14 files: C# style, API, testing, repo structure, solution, dependencies, build system, locked restore, project file format, tools (consuming/publishing), NuGet (publishing/signing), benchmarking |
 | `terraform` | `.tf`/`.hcl`, `infra/`, Terragrunt/OpenTofu, `plan`/`apply`; `apply` needs permission | Terraform/Terragrunt layout, root/account/env, modules |
+| `aws` | any AWS work: services, API/SDK (boto3, SDK for .NET), `aws` CLI, IAM policy/action, service quota, endpoint, CloudFormation, Well-Architected | Reach official AWS docs over public URLs via `WebFetch`; canonical URL catalogue; docs-over-memory; knowledge not action (mutating ops stay permission-gated) |
 | `local-code-review` | explicit "sima / kiegyensúlyozott / enyhe / light review" kérés (nem a default) | Balanced, non-adversarial local review in Hungarian; shared mechanics source for `devils-advocate-review`; never commit/push/publish |
 | `devils-advocate-review` | **default review technika** — "review-eld", "/review", "nézd át a változásokat", + "devil's advocate", "ördög ügyvédje", "nézd át kritikusan", "stress-test-eld" | Adversarial default review on `local-code-review`'s mechanics; structured 8-section verdict; local-only, never commit/push/publish |

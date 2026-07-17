@@ -1,6 +1,6 @@
 # AWS documentation as a knowledge source
 
-When doing **anything AWS-specific**, work from the **official AWS documentation** reached over public URLs instead of relying on memory. AWS surfaces (APIs, IAM actions, service limits, endpoints, CLI flags, SDK method signatures) change often and are easy to misremember or hallucinate; the docs are the source of truth. Fetch the relevant page, then act on what it actually says.
+When doing **anything AWS-specific**, work from the **current official source** instead of relying on memory — either the **Agent Toolkit for AWS** plugin (curated skills / `aws-mcp`, see below) where it's installed, or the **official AWS documentation** reached over public URLs. AWS surfaces (APIs, IAM actions, service limits, endpoints, CLI flags, SDK method signatures) change often and are easy to misremember or hallucinate; the docs are the source of truth. Reach the relevant page, then act on what it actually says.
 
 ## When this applies
 
@@ -24,6 +24,33 @@ Trivial, high-confidence facts (e.g. "S3 stores objects") don't need a fetch. Th
 4. Base the code / answer on the fetched content, and cite the URL.
 
 `WebFetch` / `WebSearch` are available in this environment as deferred tools — load them via `ToolSearch` (`select:WebFetch,WebSearch`) before first use.
+
+## Official tooling — Agent Toolkit for AWS (`aws-core` plugin)
+
+AWS ships an official agent tool that supersedes hand-fetching where it's installed: the **Agent Toolkit for AWS** (<https://aws.amazon.com/products/developer-tools/agent-toolkit-for-aws/>). It bridges the gap between a model's training data and current AWS capabilities. Three parts:
+
+- **AWS MCP Server** (`aws-mcp`) — a managed, remote MCP server: run AWS CLI commands, search current AWS documentation, and run curated skills, with CloudWatch monitoring and IAM controls.
+- **Agent Skills** — curated packages: service decision guides, step-by-step procedures, troubleshooting guides.
+- **Agent Plugins** — install bundles for Claude Code, Cursor, Codex, and Kiro that wire the MCP server config plus the curated skills.
+
+**Claude Code — the `aws-core` plugin**, from the `claude-plugins-official` marketplace (`anthropics/claude-plugins-official`), installed here at `user` scope. Component inventory (v1.1.0): the `aws-mcp` MCP server, one PreToolUse hook (harness-only guardrail), and 15 curated skills — `amazon-bedrock`, `aws-billing-and-cost-management`, `aws-blocks`, `aws-cdk`, `aws-cloudformation`, `aws-containers`, `aws-iam`, `aws-messaging-and-streaming`, `aws-observability`, `aws-sdk-js-v3-usage`, `aws-sdk-python-usage`, `aws-sdk-swift-usage`, `aws-secrets-manager`, `aws-serverless`, `signing-in-to-aws`.
+
+Install (already done here):
+
+```bash
+# CLI (non-interactive)
+claude plugin install aws-core@claude-plugins-official --scope user
+
+# or in the Claude Code TUI
+/plugin install aws-core@claude-plugins-official
+/reload-plugins
+```
+
+**Preference order.** When a task matches one of the curated skills or `aws-mcp` is available, prefer it — managed and current. The public-URL + `WebFetch` catalogue below is the **fallback / complement**: for a plugin-less environment, or a quick targeted doc check.
+
+**Safety — the same gate applies.** `aws-mcp` can execute AWS CLI commands, so the knowledge-not-action rule still holds: reading docs / searching is safe, but any **mutating** AWS operation stays permission-gated — ask first (see Safety & scope below).
+
+**Token cost.** `aws-core` adds ~2.1k always-on tokens to every session (curated skills load on-invoke). That's the user's opt-in; keep [[token-economy]] in mind — don't fire a curated skill or a fetch you don't need.
 
 ## Canonical public URL catalogue
 

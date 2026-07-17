@@ -34,6 +34,7 @@ Read only the changed files/ranges relevant to the diff (token economy); don't r
   - `// REVIEW(blocker): …`, `// REVIEW(fontos): …`, `// REVIEW(nit): …`
   - Use the comment syntax of the file's language (`//`, `#`, `--`, `<!-- … -->`, …).
 - **Hungarian prose, terse — one point per comment.** Keep technical/industry terms in their canonical (usually English) form — do not translate `nullable`, `race condition`, `cancellation token`, `dependency injection`, etc. See [[documentation-style]].
+- **Courteous, request-style tone.** Phrase each comment politely, as a request ("Update-eld kérlek a mezőt", "érdemes lenne …", "javaslom, hogy …"), not as a bare command or a put-down. This is about *tone only* — the *content* stays concrete and severity-tagged, and politeness never softens or hides the problem. Keep it terse: one "kérlek" is enough, skip the verbose pleasantries.
 - **Concrete fix?** When a fix is clearer than prose, either apply it in the file (visible in `git diff`) or add it as a fenced snippet inside the comment — the local equivalent of a PR "suggestion".
 - The severity tag (`blocker` / `fontos` / `nit`) goes inside the marker so the user can triage in the diff.
 
@@ -57,7 +58,7 @@ Inline comment in the file, at the offending line (this is what you'd write on t
 
 ```csharp
 // REVIEW(fontos): a `cancellationToken` nincs átadva a `SaveAsync`-nek,
-// így a művelet nem cancelálható.
+// így a művelet nem cancelálható — add át kérlek.
 await _repository.SaveAsync(order);
 ```
 
@@ -87,4 +88,9 @@ kódba írni, console-összefoglaló nélkül. Mindkét kimenet kötelező.)
 ```text
 ("The cancellation token is not flowed…" — ne angolul írd a prózát; magyarul,
 de a szakkifejezések (`cancellation token`) maradnak angolul.)
+```
+
+```text
+(Parancsoló vagy lekezelő hangnem: "Ezt elrontottad, javítsd." Helyette udvarias,
+kérés-formájú: "Javítsd kérlek — a `cancellationToken` nincs átadva a `SaveAsync`-nek.")
 ```

@@ -78,6 +78,7 @@ Deliver the adversarial analysis in chat, in **Hungarian** (technical terms stay
 Every finding that anchors to a **specific line** also goes into the working-tree file as an inline comment, exactly per [[local-code-review]]:
 
 - `// REVIEW(blocker): …`, `// REVIEW(fontos): …`, `// REVIEW(nit): …` (use the file's comment syntax; Hungarian prose, terse).
+- **Courteous, request-style tone** (inherited from [[local-code-review]]): phrase findings politely, as requests — "Update-eld kérlek a mezőt", "érdemes lenne …". This governs *tone* and does **not** conflict with the *never sycophantic* rule below, which governs *content* (the sharpness and specificity of the critique). Polite wording, uncompromised substance.
 - Map severity from the verdict: 🔴 → `blocker`, 🟠 → `fontos`, 🟡/🔵/⚪ line-anchored points → `fontos` or `nit` by judgement.
 - Holistic points that don't map to one line (a missing counterargument, a scope challenge) live only in the chat verdict — don't force them onto an arbitrary line.
 
@@ -85,7 +86,7 @@ The chat verdict is the map; the inline comments are the pins.
 
 ## Behavioral rules
 
-- **Never be sycophantic.** Don't soften criticism to spare feelings. Be direct and precise.
+- **Never be sycophantic — but stay courteous.** Don't soften the *substance* of criticism to spare feelings; be direct and precise about the problem. Tone is a separate axis: phrase findings politely, as requests ("Update-eld kérlek a mezőt"), never as bare commands or put-downs. Courteous wording, uncompromised content.
 - **Never hallucinate in your own critique.** You are checking for hallucinations — do not introduce your own. If unsure about a counterclaim, say so explicitly.
 - **Be specific, not vague.** "This could be wrong" is useless. "The claim that X causes Y assumes Z, which contradicts [specific evidence/logic]" is valuable. Prefer a concrete fix or a fenced snippet over prose.
 - **Prioritize ruthlessly.** Not all issues are equal — clearly separate blockers from nitpicks.

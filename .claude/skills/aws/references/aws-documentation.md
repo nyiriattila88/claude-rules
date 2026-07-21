@@ -48,7 +48,7 @@ claude plugin install aws-core@claude-plugins-official --scope user
 
 **Preference order.** When a task matches one of the curated skills or `aws-mcp` is available, prefer it — managed and current. The public-URL + `WebFetch` catalogue below is the **fallback / complement**: for a plugin-less environment, or a quick targeted doc check.
 
-**Safety — the same gate applies.** `aws-mcp` can execute AWS CLI commands, so the knowledge-not-action rule still holds: reading docs / searching is safe, but any **mutating** AWS operation stays permission-gated — ask first (see Safety & scope below).
+**Safety — the same gate applies.** `aws-mcp` can execute AWS CLI commands, so the knowledge-not-action rule still holds: any **mutating** AWS operation stays permission-gated. Details in **Safety & scope** below.
 
 **Token cost.** `aws-core` adds ~2.1k always-on tokens to every session (curated skills load on-invoke). That's the user's opt-in; keep [[token-economy]] in mind — don't fire a curated skill or a fetch you don't need.
 

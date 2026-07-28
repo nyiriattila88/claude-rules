@@ -38,6 +38,86 @@ Other layouts (e.g. multiple stacks per env like `environments/dev/common`, `env
 - Resource files: group by concern (e.g. `ecs.tf`, `iam.tf`, `lb.tf`, `apigateway.tf`, `dynamodb.tf`).
 - **outputs.tf:** Output only what other stacks or pipelines need; add descriptions.
 
+## Resource dependencies — make ordering explicit
+
+Terraform builds its apply order from **references** between blocks: reading `aws_x.foo.arn` from another resource creates an implicit dependency edge, so `foo` is created first. A value nobody references is *not* ordered relative to anything — Terraform is free to read or create it at any point, including too early. Wiring dependencies correctly is therefore not optional polish; it is what keeps a first `apply` from failing.
+
+### Never `data`-source a resource you create in the same run (the classic trap)
+
+A `data` source is read during **refresh/plan**, before most resources are created, and it has **no dependency** on whatever resource would create the thing it looks up. So if a `data` block resolves an object that another part of the same configuration is *also creating*, the read runs before that object exists and the plan dies with:
+
+```text
+Error: reading Lambda Function (playback-states-read-event-handler): couldn't find resource
+  with data.aws_lambda_function.read_handler,
+  on data.tf line 11, in data "aws_lambda_function" "read_handler":
+Error: reading SQS Queue (playback-state-writes.fifo) URL: couldn't find resource
+  with module.write_event_handler.data.aws_sqs_queue.writes,
+```
+
+The fix is almost never `depends_on` on the data source — it is to **stop looking the thing up and reference it directly** instead: the managed resource's own attribute, or the creating module's `output`, or a value passed in from the module that owns the resource. That reference is what gives Terraform the ordering edge (and it also avoids a needless extra API read).
+
+#### ✅ DO
+
+```hcl
+# The lambda module creates the function and exports its alias; consumers read the
+# OUTPUT, so Terraform orders the function first. No data lookup, no ordering gap.
+resource "aws_apigatewayv2_integration" "read" {
+  integration_uri = module.read_event_handler.live_alias_invoke_arn
+}
+```
+
+```hcl
+# The root owns (creates) the queue and passes its ARN down; the write handler
+# consumes var.write_queue_arn instead of re-reading the queue it doesn't own.
+module "write_event_handler" {
+  source          = "../playback-states-write-event-handler"
+  write_queue_arn = aws_sqs_queue.writes.arn
+}
+```
+
+#### ❌ DON'T
+
+```hcl
+# data.tf — looks up a Lambda / SQS queue that THIS same run creates. On a first
+# apply (or any run where it doesn't exist yet) the refresh read fails with
+# "couldn't find resource": no dependency ties the read to the create.
+data "aws_lambda_function" "read_handler" {
+  function_name = "playback-states-read-event-handler"
+}
+
+data "aws_sqs_queue" "writes" {
+  name = "playback-state-writes.fifo"
+}
+```
+
+### `depends_on` — only for real ordering with no data flow
+
+Use explicit `depends_on` when a genuine ordering requirement exists but **no value flows** between the blocks to express it (e.g. an IAM role policy must exist before the principal uses the role at runtime, or a resource relies on an API the module can't reference). Keep it minimal — every `depends_on` you can replace with a direct reference, you should, because references are self-documenting and survive refactors.
+
+#### ✅ DO
+
+```hcl
+# No attribute of the policy is referenced, but the Lambda must not be invoked
+# before its execution-role policy is attached — express that ordering explicitly.
+resource "aws_lambda_function" "handler" {
+  depends_on = [aws_iam_role_policy.handler]
+  # ...
+}
+```
+
+#### ❌ DON'T
+
+```hcl
+# depends_on used where a plain reference already implies the order — noise that
+# can even mask the fact that the real dependency is the referenced attribute.
+resource "aws_lambda_function" "handler" {
+  role       = aws_iam_role.handler.arn   # already orders the role first
+  depends_on = [aws_iam_role.handler]     # redundant
+}
+```
+
+> Source: HashiCorp Terraform docs — *Resource dependencies* (implicit references vs. `depends_on`) and *Data sources* (read timing during plan/refresh).
+
 ## File organization
 
 Two independent rules keep a module navigable: **where a `local` is declared**, and **when a file is split**.

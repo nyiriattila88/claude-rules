@@ -40,35 +40,28 @@ Other layouts (e.g. multiple stacks per env like `environments/dev/common`, `env
 
 ## Resource dependencies — make ordering explicit
 
-Terraform builds its apply order from **references** between blocks: reading `aws_x.foo.arn` from another resource creates an implicit dependency edge, so `foo` is created first. A value nobody references is *not* ordered relative to anything — Terraform is free to read or create it at any point, including too early. Wiring dependencies correctly is therefore not optional polish; it is what keeps a first `apply` from failing.
+Terraform builds its apply order from **references** between blocks: reading `aws_x.foo.arn` — or `module.a.some_output` — from somewhere else creates an implicit dependency edge, so the referenced thing is created first. A value nobody references is *not* ordered relative to anything — Terraform is free to read or create it at any point, including too early. Wiring dependencies correctly is therefore not optional polish; it is what keeps a first `apply` from failing.
 
-### Never `data`-source a resource you create in the same run (the classic trap)
+### Pass cross-module values through outputs → inputs, not a `data` re-lookup
 
-A `data` source is read during **refresh/plan**, before most resources are created, and it has **no dependency** on whatever resource would create the thing it looks up. So if a `data` block resolves an object that another part of the same configuration is *also creating*, the read runs before that object exists and the plan dies with:
-
-```text
-Error: reading Lambda Function (playback-states-read-event-handler): couldn't find resource
-  with data.aws_lambda_function.read_handler,
-  on data.tf line 11, in data "aws_lambda_function" "read_handler":
-Error: reading SQS Queue (playback-state-writes.fifo) URL: couldn't find resource
-  with module.write_event_handler.data.aws_sqs_queue.writes,
-```
-
-The fix is almost never `depends_on` on the data source — it is to **stop looking the thing up and reference it directly** instead: the managed resource's own attribute, or the creating module's `output`, or a value passed in from the module that owns the resource. That reference is what gives Terraform the ordering edge (and it also avoids a needless extra API read).
+When one module (or the root) needs a value another module **creates**, route it through an `output` on the producer and an attribute reference / input variable on the consumer — `module.producer.some_output`. That reference is a tracked edge, so Terraform builds the producer first and a from-scratch apply just works. **Do not re-look-up the produced resource by name with a `data` source.** A bare name string (`function_name = "playback-states-read-event-handler"`) is opaque to Terraform: it cannot tie the read back to the module that creates the resource, so nothing guarantees ordering and you pay a redundant API read on every plan. Prefer module outputs over data sources whenever the value originates **inside the same configuration**; reserve `data` sources for things a *different* owner/run created out-of-band (a shared platform bucket, a pre-existing hosted zone).
 
 #### ✅ DO
 
 ```hcl
-# The lambda module creates the function and exports its alias; consumers read the
-# OUTPUT, so Terraform orders the function first. No data lookup, no ordering gap.
-resource "aws_apigatewayv2_integration" "read" {
-  integration_uri = module.read_event_handler.live_alias_invoke_arn
+# Producer module exposes what it creates.
+# playback-states-read-event-handler/outputs.tf
+output "lambda_invoke_arn" {
+  value = aws_lambda_alias.live.invoke_arn
 }
-```
 
-```hcl
-# The root owns (creates) the queue and passes its ARN down; the write handler
-# consumes var.write_queue_arn instead of re-reading the queue it doesn't own.
+# Consumer reads that OUTPUT — attribute reference ⇒ Terraform orders the lambda first.
+resource "aws_apigatewayv2_integration" "read" {
+  integration_uri = module.read_event_handler.lambda_invoke_arn
+}
+
+# Root owns the queue and passes its ARN down as an input, instead of making the
+# child re-read it by name.
 module "write_event_handler" {
   source          = "../playback-states-write-event-handler"
   write_queue_arn = aws_sqs_queue.writes.arn
@@ -78,9 +71,9 @@ module "write_event_handler" {
 #### ❌ DON'T
 
 ```hcl
-# data.tf — looks up a Lambda / SQS queue that THIS same run creates. On a first
-# apply (or any run where it doesn't exist yet) the refresh read fails with
-# "couldn't find resource": no dependency ties the read to the create.
+# Child re-looks-up the lambda / queue by name via data sources, even though a sibling
+# module in the same run creates them. The name is a plain string with no edge back to
+# the producer — nothing forces the producer to exist first (see the failure below).
 data "aws_lambda_function" "read_handler" {
   function_name = "playback-states-read-event-handler"
 }
@@ -89,6 +82,20 @@ data "aws_sqs_queue" "writes" {
   name = "playback-state-writes.fifo"
 }
 ```
+
+### The failure this triggers: `data`-sourcing a same-run resource
+
+A `data` source is read during **refresh/plan**, before most resources are created, and it has **no dependency** on whatever would create the thing it looks up. So a `data` block resolving an object the same configuration is *also creating* runs before that object exists, and the plan dies with:
+
+```text
+Error: reading Lambda Function (playback-states-read-event-handler): couldn't find resource
+  with data.aws_lambda_function.read_handler,
+  on data.tf line 11, in data "aws_lambda_function" "read_handler":
+Error: reading SQS Queue (playback-state-writes.fifo) URL: couldn't find resource
+  with module.write_event_handler.data.aws_sqs_queue.writes,
+```
+
+The fix is almost never `depends_on` on the data source — it is to delete the lookup and reference the producer's output, as above.
 
 ### `depends_on` — only for real ordering with no data flow
 

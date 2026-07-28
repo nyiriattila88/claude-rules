@@ -18,4 +18,4 @@ A részletes szabály a `references/terraform-terragrunt.md`-ben van. **Olvasd b
 - **`apply`/`destroy` = engedélyköteles.** Soha ne futtass `terraform/terragrunt/tofu apply`-t (vagy `destroy`-t, `run-all apply/destroy`-t) magadtól — előbb kérdezz. A `plan`/`validate`/`fmt`/`output` biztonságos, szabadon futtatható. (Lásd még a mag `git-conventions` push-engedély modelljét és a globális CLAUDE.md destruktív-művelet szabályát.)
 - **Hiányzó CLI → WSL.** Ha `tofu`/`terragrunt`/`terraform` nincs a hoston, ne add fel: ellenőrizd WSL alatt (`wsl command -v tofu`), és WSL-en át `/mnt/c/...` utakkal futtasd.
 
-A layout (root.hcl / account.hcl / terragrunt.hcl / modules), a backend/state, a resource-függőségek helyes kezelése (implicit reference vs. `depends_on`; sose `data`-forrázz ugyanabban a run-ban létrehozott resource-ot) és a parancs-részletek a reference fájlban.
+A layout (root.hcl / account.hcl / terragrunt.hcl / modules), a backend/state, a resource-függőségek helyes kezelése (modulok közti értékátadás modul-output → input-tal, ne `data` re-lookup-pal; implicit reference vs. `depends_on`) és a parancs-részletek a reference fájlban.

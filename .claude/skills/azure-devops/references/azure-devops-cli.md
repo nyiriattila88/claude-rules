@@ -160,6 +160,75 @@ vagy csak az utolsó futás eredményét nézzem meg?
 indítom a pipeline-t, hogy friss adat legyen.)
 ```
 
+## Koncepció-validálás temporary change-dzsel
+
+Egy Azure DevOps pipeline visszajelzési ciklusa lassú: a change csak a remote-on érvényesül, futnia kell hozzá, **scheduled (cron) trigger** esetén pedig meg is kell várni az ütemezést. Egy állítás — „a cron tényleg elindítja a pipeline-t" — lokálisan nem validálható.
+
+Ilyenkor **szabad ideiglenes változtatást tenni**, ami lerövidíti a ciklust: sűrűbb cron, külön eldobható probe pipeline, kihagyott stage, ideiglenesen kikapcsolt condition. Ez nem hack, hanem a validáció eszköze — de csak a **jelöl → validál → revert** hármassal együtt érvényes.
+
+### Előbb: mit validálsz?
+
+| A kérdés | Kell-e temporary change |
+|---|---|
+| Jó-e a pipeline **tartalma** (task, script, változó) | **Nem.** Egy manuális futtatás (`az pipelines run`, engedélyköteles) ugyanezt megválaszolja. |
+| Elsül-e maga a **trigger** (cron, PR-, path-filter) | **Igen.** A manuális run megkerüli a triggert, ezért semmit nem bizonyít róla. |
+
+### Kötelező elemek
+
+1. **Jelöld egyértelműen.** A temporary artifact neve/kommentje árulja el magát: `temp_cron_probe.yml`, `# TEMP: validation only, revert`. Így egy `git status`-ból is látszik, mi maradt bent.
+2. **Vezess listát arról, mit nyúltál meg.** A revert csak akkor teljes, ha minden érintett fájl szerepel rajta — új fájl, módosított cron, kikapcsolt condition.
+3. **A revert kötelező, és nem függ az eredménytől.** Bukott validáció után is revertálsz; utána ellenőrizd is (`git status` tiszta, a diff a kiindulási állapothoz képest üres).
+4. **Temporary change soha nem kerül PR-ba vagy merge-be.** Ha a ciklushoz commit kellett, a revert is saját commit — vagy a validációs commitok kikerülnek a branchből.
+5. **A push továbbra is engedélyköteles** ([[git-conventions]]). Mivel a temporary change push nélkül semmit nem validál, **egyszer** kérj engedélyt a **teljes ciklusra** (validációs push + revert push), ne körönként.
+6. **Prod-ot ne érintsen.** Sűrített cron vagy probe csak nem-prod pipeline-on; deploy pipeline-t ne tegyél gyakori ütemezésre — ötpercenkénti valódi deploy lesz belőle.
+7. **A probe legyen no-op.** Egy `echo`-nyi script gyorsabban fordul, nem éget agent-időt, és nem tol ki valódi artifactot.
+
+### Cron trigger — előbb a nem-futtatós ellenőrzés
+
+Mielőtt sűrítenél és megvárnál egy futást, nézd meg, hogy a schedule **egyáltalán érvényesült-e** — ez azonnali, futás nélkül:
+
+- A pipeline **Triggers → Scheduled runs** nézete listázza a következő ütemezett futásokat. Ha üres, a cron nem él, és a várakozás felesleges.
+- CLI-ből a definition `triggers` mezője mutatja ugyanezt: `az pipelines show --id <id> -o json | ConvertFrom-Json`, majd a `.triggers` vizsgálata.
+
+Négy klasszikus ok, amiért „nem fut a cron" — egyiket sem oldja meg a sűrítés:
+
+| Ok | Mit jelent |
+|---|---|
+| A schedule a **default branch** YAML-jéből olvasódik ki | A feature branchen módosított `schedules:` blokk önmagában nem lép életbe; a `branches: include:` csak azt mondja meg, *melyik* branchre fusson. |
+| `always` alapból `false` | Nincs új commit az előző ütemezett futás óta → a scheduler kihagyja. Validációhoz szinte mindig kell az `always: true`. |
+| A cron **UTC**-ben jár | Lokális idő szerint számolva „nem indult el", pedig csak máskor fog. |
+| A UI-s override (**Triggers → Scheduled**) be van kapcsolva | A YAML `schedules:` blokkját a pipeline-beállítás felülírja, akármit írsz a fájlba. |
+
+### ✅ DO
+
+```text
+A cron triggert validálom: külön `temp_cron_probe.yml` no-op scripttel, `always: true`-val,
+sűrű ütemezéssel. Egyben kérek engedélyt a validációs push-ra és a revert push-ra;
+futás után törlöm a probe-ot, és `git status`-szal ellenőrzöm, hogy nem maradt semmi.
+```
+
+```text
+Előbb megnézem a Scheduled runs / `.triggers` értéket — ha ott nem jelenik meg a schedule,
+felesleges megvárni a futást, a cron nem érvényesült.
+```
+
+### ❌ DON'T
+
+```text
+A deploy pipeline cronját `*/5`-re állítom, hogy hamarabb lássam az eredményt —
+közben ötpercenként valódi deploy megy ki egy környezetre.
+```
+
+```text
+Manuálisan futtatom a pipeline-t, és ebből azt állítom, hogy „a cron trigger működik".
+(A manuális run megkerüli a triggert — a triggerről semmit nem mond.)
+```
+
+```text
+Sikerült a validáció → továbblépek a következő feladatra, a temp probe és a sűrített cron
+bent marad a branchen.
+```
+
 ## Read-only receptek
 
 Az alábbiak feltételezik a beállított defaultokat; egyébként `--org`/`-p` kell.

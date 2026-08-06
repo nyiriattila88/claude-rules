@@ -138,21 +138,23 @@ I've committed the change locally. Do you want me to push it to the remote?
 
 The merge commit **carries the PR description**, so the same rule applies to it as to commit messages: write it in **English**, even when the conversation itself runs in another language.
 
-Structure — a Jira link, then three fixed sections:
+Structure — a Jira link, then three fixed sections. The section titles are **markdown headings** (`## Why`), not bare labels: the description renders as markdown, so a plain `Why` line becomes body text and the three sections blur into one wall. Keep a blank line after every heading and between paragraphs.
 
-```
+```markdown
 [[NX-12345] Ticket title](https://<org>.atlassian.net/browse/NX-12345)
 
-Why
+## Why
+
 What made the change necessary: the missing capability, the wrong behaviour, or the
 misleading contract. State the cause, not the solution.
 
-What
+## What
 
 * `path/to/file` — what it does now, in one sentence.
 * `other/file` — the non-obvious decision a reviewer would not spot in the diff.
 
-Notes
+## Notes
+
 Whatever the review needs beyond the above: validation evidence, measurements, a scope
 boundary ("documentation only; no behaviour change"), or a required merge order.
 ```
@@ -163,13 +165,21 @@ boundary ("documentation only; no behaviour change"), or a required merge order.
 
 ### ✅ DO
 
-```text
-Why
+```markdown
+## Why
+
 `Attachment.DownloadUrl` promised a file stream, but content answered from the
 integration now carries an endpoint that returns a short-lived URL instead.
 ```
 
 ### ❌ DON'T
+
+```markdown
+(Bare labels where headings belong — they render as body text, so the sections vanish:)
+Why
+`Attachment.DownloadUrl` promised a file stream, but content answered from the
+integration now carries an endpoint that returns a short-lived URL instead.
+```
 
 ```text
 (A description in the conversation's language, or a bare list of commit subjects with

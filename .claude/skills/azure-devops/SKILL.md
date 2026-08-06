@@ -26,6 +26,7 @@ A részletes szabály a `references/azure-devops-cli.md`-ben van. **Olvasd be a 
 - **Ne telepíts vaktában.** A "nincs Azure DevOps client" gyakori téves diagnózis: az `az` CLI + `azure-devops` extension gyakran már fent van, defaultokkal együtt. Előbb **ellenőrizz** (`az devops configure --list`, majd egy read-only smoke test), csak utána telepíts.
 - **PowerShell quoting trap.** Windowson az `az` egy `az.cmd` batch wrapper: a `--query` JMESPath zárójelei elhasalnak rajta (`-o was unexpected at this time`). Kerüld meg `-o json | ConvertFrom-Json`-nal és client-side szűréssel — ez token-takarékosabb is.
 - **Read szabad, write engedélyköteles.** A `list`/`show`/`query` biztonságos. A mutáló parancs — `az pipelines run` / `build queue` (valódi deployt indíthat!), `az repos pr create/update/set-vote`, `az boards work-item create/update/delete`, repo vagy service endpoint létrehozás/törlés — **csak explicit engedéllyel**, ugyanaz a modell, mint a [[git-conventions]] push-policy és a [[terraform-terragrunt]] `apply`.
+- **A futás metaadata megtéveszt.** A REST API `reason` mezője pipeline-completion triggernél is **`manual`**-t ad — a valódi érték a futáson belüli `Build.Reason` (`ResourceTrigger`), amit csak a job logja mutat. Ráadásul az API **késleltetve indexel**: egy épp elindult run nem látszik azonnal a `runs list`-ben, ezért a cron-ablak után 2–4 perccel kérdezz. Ebből a két csapdából egy valódi session-ben két hibás következtetés lett („nem indult el a cron", „kézzel indították").
 - **Temporary change szabad a validációhoz, a revert kötelező.** Amit lokálisan nem lehet bizonyítani (elsül-e a cron trigger, fut-e a path-filter), ahhoz szabad ideiglenesen gyorsítani a feedback loopot — sűrűbb cron, eldobható probe pipeline. Feltétel: **jelölöd** (`temp_…`, `# TEMP:`), **listát vezetsz** róla, és a validáció után — eredménytől függetlenül — **visszaállítod**. Prod-ot érintő pipeline-on nem. Részletek a reference `Koncepció-validálás temporary change-dzsel` szekciójában.
 
 ## Mikor melyik szekciót olvasd
@@ -33,10 +34,14 @@ A részletes szabály a `references/azure-devops-cli.md`-ben van. **Olvasd be a 
 | Feladat | Szekció a `references/azure-devops-cli.md`-ben |
 |---|---|
 | "Van telepítve?" / setup / 401 | Előfeltétel-ellenőrzés, Authentikáció |
-| Parancs elhasal PowerShellben | PowerShell quoting trap |
+| Parancs elhasal PowerShellben | PowerShell quoting trap (+ További wrapper-csapdák) |
+| PR nyitás/leírás CLI-ből | További wrapper- és PowerShell-csapdák |
 | Mit futtathatok kérdés nélkül | Engedélymodell |
 | Repo / PR / pipeline / run lekérdezés | Read-only receptek |
 | Cron/trigger koncepció kipróbálása, lassú feedback loop | Koncepció-validálás temporary change-dzsel |
+| Cron nem indult el / melyik ág YAML-je dönt | Melyik ág YAML-je dönt; Cron trigger — mire nézz |
+| Mi indította a futást / „nem is futott le" | A futás metaadata félrevezető |
+| Melyik build artifactját deployolja | Pipeline resource — melyik build artifactját kapod |
 | Build log, melyik stage bukott | REST fallback (`az devops invoke`) |
 | Nagy lista, sok találat | Token economy |
 | `git push` az ADO remote-ra nem megy | Git remote auth (külön credential) |

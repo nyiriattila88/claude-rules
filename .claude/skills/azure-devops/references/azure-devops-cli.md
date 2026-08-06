@@ -131,6 +131,29 @@ az repos list --query "length(@)" -o tsv
 az --% repos list --query "length(@)" -o tsv
 ```
 
+### További wrapper- és PowerShell-csapdák
+
+Ugyanaz a gyökér (batch wrapper + PowerShell parser), más tünetekkel:
+
+| Tünet | Ok | Megoldás |
+|---|---|---|
+| `'---' is not recognized as an internal or external command` | markdown **táblázat** a `--description`/`--title` értékben: a `\|` karaktert a `cmd.exe` pipe-ként értelmezi | a PR-leírásban ne használj táblázatot (listát igen), vagy REST-tel küldd |
+| `You must provide a value expression following the '-' operator` | a **backtick** a PowerShell escape-karaktere, a markdown inline-kód meg épp azt használja | a leírást **single-quoted** stringbe tedd (`'...'`), ne double-quotedba |
+| `Cannot convert the "System.Object[]" value ... to "System.DateTime"` | PS 5.1-ben a `ConvertFrom-Json` a **tömböt egyetlen objektumként** adja a pipeline-ba, így a `ForEach-Object` egyszer fut le a teljes tömbre | `$arr = ... \| ConvertFrom-Json`, majd `foreach ($x in $arr) { ... }` |
+| `ConvertFrom-Json : Invalid JSON primitive: WARNING` | az `az` a stdout elejére **WARNING**-ot írhat (pl. `az pipelines create`) | ne parse-olj vakon: `-o none`, majd külön lekérdezés az eredményért |
+
+Több soros leírás (PR description) átadása: PowerShell **tömbként**, soronként egy elem — a CLI így külön argumentumokként veszi át, és nem kell escape-elni.
+
+```powershell
+$desc = @(
+  '## What this contains',
+  '',
+  '* `path/to/file` — mit tesz most.'
+)
+az repos pr create --repository <repo> --source-branch <br> --target-branch <base> `
+  --title '[NX-12345] Subject' --description $desc
+```
+
 ## Engedélymodell — read szabad, write engedélyköteles
 
 Ugyanaz a modell, mint a [[git-conventions]] push-policy és a [[terraform-terragrunt]] `apply`: a **remote állapotát megváltoztató** parancs sosem indul magadtól.
@@ -182,22 +205,50 @@ Ilyenkor **szabad ideiglenes változtatást tenni**, ami lerövidíti a ciklust:
 5. **A push továbbra is engedélyköteles** ([[git-conventions]]). Mivel a temporary change push nélkül semmit nem validál, **egyszer** kérj engedélyt a **teljes ciklusra** (validációs push + revert push), ne körönként.
 6. **Prod-ot ne érintsen.** Sűrített cron vagy probe csak nem-prod pipeline-on; deploy pipeline-t ne tegyél gyakori ütemezésre — ötpercenkénti valódi deploy lesz belőle.
 7. **A probe legyen no-op.** Egy `echo`-nyi script gyorsabban fordul, nem éget agent-időt, és nem tol ki valódi artifactot.
+8. **A probe szerkezete legyen valósághű.** Ha stage-eket gatelsz, írd ki a `dependsOn: []`-t minden független stage-en: az ADO különben **implicit láncba** fűzi őket, és egy skipelt stage után a következő `succeeded()` feltétele hamis lesz. Ez **hamis negatívot** ad — a jó condition tűnik hibásnak.
 
-### Cron trigger — előbb a nem-futtatós ellenőrzés
+### Gyors helyettesítő pipeline — a trigger valódi, a job nem
 
-Mielőtt sűrítenél és megvárnál egy futást, nézd meg, hogy a schedule **egyáltalán érvényesült-e** — ez azonnali, futás nélkül:
+Ha egy Build → Deploy lánc egy ciklusa 20 perc, néhány mérés órákba fut. Ilyenkor írd át **ideiglenesen magukat a pipeline-okat**: a `trigger`, `schedules`, `resources.pipelines` és a stage-conditionök **maradnak valódiak**, a jobok helyére egy `echo` kerül. Egy ciklus így másodperc, és pontosan azt méri, amit kell — a gatinget, nem a job tartalmát.
 
-- A pipeline **Triggers → Scheduled runs** nézete listázza a következő ütemezett futásokat. Ha üres, a cron nem él, és a várakozás felesleges.
-- CLI-ből a definition `triggers` mezője mutatja ugyanezt: `az pipelines show --id <id> -o json | ConvertFrom-Json`, majd a `.triggers` vizsgálata.
+A probe job írja ki azt, amit a lista nem mond meg: `Build.Reason`, `Build.SourceBranch`, és a feloldott artifact (`resources.pipeline.<alias>.runName`).
 
-Négy klasszikus ok, amiért „nem fut a cron" — egyiket sem oldja meg a sűrítés:
+```yaml
+steps:
+  - checkout: none
+  - script: |
+      echo "reason:   $(Build.Reason)"
+      echo "branch:   $(Build.SourceBranch)"
+      echo "artifact: $(resources.pipeline.build.runName)"
+```
+
+### Melyik ág YAML-je dönt — a két trigger ellentétesen működik
+
+Ez a leggyakoribb tévedés, és a kétféle triggernek **más** a szabálya:
+
+| Trigger | Melyik ág YAML-jét olvassa |
+|---|---|
+| **Scheduled (cron)** | **Azt az ágat**, amelyben a `schedules:` blokk van. Egy feature branchen felvett cron **elsül**, ha a `branches: include:` abban az ágban tartalmazza magát az ágat. |
+| **Pipeline-completion (resource trigger)** | A **pipeline** „Default branch for manual and scheduled builds" beállítását — a definition `repository.defaultBranch` mezőjét. A feature branchen bővített `trigger.branches` önmagában **nem** lép életbe. |
+
+A hivatalos megfogalmazás a scheduled triggerre: *„Scheduled runs for a branch are added only if the branch matches the branch filters for the scheduled triggers in the YAML file **in that particular branch**."* Vagyis a cron **validálható** feature branchről.
+
+A resource trigger beállítása **nem** a repo default branchje. A repo default branchének átállítása nem is segít: a definícióban egy befagyasztott érték áll, azt a pipeline-szintű beállítás írja át (engedélyköteles, temporary):
+
+```bash
+az pipelines update --id <pipelineId> --branch <branch>
+```
+
+### Cron trigger — mire nézz, ha „nem fut"
 
 | Ok | Mit jelent |
 |---|---|
-| A schedule a **default branch** YAML-jéből olvasódik ki | A feature branchen módosított `schedules:` blokk önmagában nem lép életbe; a `branches: include:` csak azt mondja meg, *melyik* branchre fusson. |
 | `always` alapból `false` | Nincs új commit az előző ütemezett futás óta → a scheduler kihagyja. Validációhoz szinte mindig kell az `always: true`. |
 | A cron **UTC**-ben jár | Lokális idő szerint számolva „nem indult el", pedig csak máskor fog. |
-| A UI-s override (**Triggers → Scheduled**) be van kapcsolva | A YAML `schedules:` blokkját a pipeline-beállítás felülírja, akármit írsz a fájlba. |
+| A UI-s override (**Triggers → Scheduled**) be van kapcsolva | A YAML `schedules:` blokkját a pipeline-beállítás felülírja. Ellenőrzés a definition `triggers` tömbjében: `settingsSourceType: 2` = YAML-ből jön, `1` = UI-ból. |
+| Túl korán néztél | Az API késleltetve indexel — lásd *A futás metaadata félrevezető*. |
+
+A definition `triggers` tömbje a YAML `schedules:` blokkot **nem** tükrözi (csak a `continuousIntegration` bejegyzés látszik benne), tehát CLI-ből nem tudod ellenőrizni, hogy a schedule regisztrálódott-e. Erre a UI **Triggers → Scheduled runs** nézete jó.
 
 ### ✅ DO
 
@@ -228,6 +279,47 @@ Manuálisan futtatom a pipeline-t, és ebből azt állítom, hogy „a cron trig
 Sikerült a validáció → továbblépek a következő feladatra, a temp probe és a sűrített cron
 bent marad a branchen.
 ```
+
+## A futás metaadata félrevezető — `reason` és indexelés
+
+Két csapda, amelyik egy valódi session-ben sorban két hibás következtetést okozott:
+
+**A REST API `reason` mezője nem mondja meg, mi indította a futást.** Pipeline-completion triggerből indult futásnál a `reason` értéke **`manual`**, a `requestedFor` pedig a rendszer-identitás (`Microsoft.VisualStudio.Services.TFS`) vagy a triggerelő build szerzője. A **valódi** érték a futáson belüli `Build.Reason` (`ResourceTrigger`), ami csak a job logjából olvasható ki — ezért írja ki a probe.
+
+**Az API késleltetve indexeli a futásokat.** Egy épp elindult run nem jelenik meg azonnal a `runs list`-ben. Egy cron-ablak után **2–4 perccel** nézz rá; ha azonnal kérdezel, azt látod, hogy „nem indult el", pedig fut.
+
+### ✅ DO
+
+```text
+A cron ablaka 09:20 volt; 09:24-kor kérdezem le a futásokat, és a stage-log
+`Build.Reason` sorából állapítom meg, mi indította.
+```
+
+### ❌ DON'T
+
+```text
+A `runs list` egy perccel a cron ideje után nem hozta a futást → jelentem, hogy
+a cron nem működik. (Csak az indexelés késett; a futás megvolt.)
+```
+
+```text
+A `reason=manual`-ból arra következtetek, hogy valaki kézzel indította —
+pedig pipeline-completion trigger volt.
+```
+
+## Pipeline resource — melyik build artifactját kapod
+
+A `resources.pipelines.pipeline.branch` hiánya **csendes** hiba. A schema szerint *„defaults to all branches, used only for manual or scheduled triggers"*: egy **scheduled** deploy a legutóbbi sikeres buildet veszi **bármely** ágról — akár egy feature branchét —, és azt telepíti a trunk környezetébe.
+
+Fix érték (`branch: develop`) megoldja a nightlyt, de elrontja a release/hotfix ág manuális deployját: ott is a trunk artifactját vennéáá. A futás **saját** ágára kötve mindkettő helyes:
+
+```yaml
+    - pipeline: build
+      source: '<build pipeline name>'
+      branch: ${{ replace(variables['Build.SourceBranch'], 'refs/heads/', '') }}
+```
+
+A `${{ }}` compile-time oldódik fel, és **cron-futásban is** működik (mérve). A resource-triggerből indult futást nem érinti: ott a triggerelő build artifactja megy.
 
 ## Read-only receptek
 

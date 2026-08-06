@@ -133,3 +133,45 @@ I've committed the change locally. Do you want me to push it to the remote?
 ```text
 (Running `git push origin main` without being asked or pre-authorized.)
 ```
+
+## Pull request description
+
+The merge commit **carries the PR description**, so the same rule applies to it as to commit messages: write it in **English**, even when the conversation itself runs in another language.
+
+Structure — a Jira link, then three fixed sections:
+
+```
+[[NX-12345] Ticket title](https://<org>.atlassian.net/browse/NX-12345)
+
+Why
+What made the change necessary: the missing capability, the wrong behaviour, or the
+misleading contract. State the cause, not the solution.
+
+What
+
+* `path/to/file` — what it does now, in one sentence.
+* `other/file` — the non-obvious decision a reviewer would not spot in the diff.
+
+Notes
+Whatever the review needs beyond the above: validation evidence, measurements, a scope
+boundary ("documentation only; no behaviour change"), or a required merge order.
+```
+
+- The `What` bullets are **file- or component-level**, in backticks, followed by `—` and one terse sentence. They are not a commit list — the commits are already in the PR.
+- **Validation evidence belongs in `Notes`**: pipeline run ids, test counts, what was actually measured versus what was only reasoned about.
+- If the change spans repositories, the **merge order** goes into `Notes` as well.
+
+### ✅ DO
+
+```text
+Why
+`Attachment.DownloadUrl` promised a file stream, but content answered from the
+integration now carries an endpoint that returns a short-lived URL instead.
+```
+
+### ❌ DON'T
+
+```text
+(A description in the conversation's language, or a bare list of commit subjects with
+no Why — the merge commit inherits both.)
+```

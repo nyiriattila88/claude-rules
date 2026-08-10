@@ -140,7 +140,8 @@ Ugyanaz a gyökér (batch wrapper + PowerShell parser), más tünetekkel:
 | `'---' is not recognized as an internal or external command` | markdown **táblázat** a `--description`/`--title` értékben: a `\|` karaktert a `cmd.exe` pipe-ként értelmezi | a PR-leírásban ne használj táblázatot (listát igen), vagy REST-tel küldd |
 | `You must provide a value expression following the '-' operator` | a **backtick** a PowerShell escape-karaktere, a markdown inline-kód meg épp azt használja | a leírást **single-quoted** stringbe tedd (`'...'`), ne double-quotedba |
 | `Cannot convert the "System.Object[]" value ... to "System.DateTime"` | PS 5.1-ben a `ConvertFrom-Json` a **tömböt egyetlen objektumként** adja a pipeline-ba, így a `ForEach-Object` egyszer fut le a teljes tömbre | `$arr = ... \| ConvertFrom-Json`, majd `foreach ($x in $arr) { ... }` |
-| `ConvertFrom-Json : Invalid JSON primitive: WARNING` | az `az` a stdout elejére **WARNING**-ot írhat (pl. `az pipelines create`) | ne parse-olj vakon: `-o none`, majd külön lekérdezés az eredményért |
+| `ConvertFrom-Json : Invalid JSON primitive: WARNING` | az `az` a stdout elejére **WARNING**-ot írhat (pl. `az pipelines create`) | szűrd a parse előtt: `az ... -o json \| Where-Object { $_ -notmatch '^WARNING' } \| ConvertFrom-Json` |
+| `You cannot call a method on a null-valued expression` egy saját helper hívása után — és **fájlok tűnnek el** | **az alias nyer a function felett**: a rövid nevek ütköznek (`rd` = `Remove-Item`, `ni` = `New-Item`, `sc` = `Set-Content`), így egy `function Rd` után az `Rd $path` valójában törli a fájlt | ne adj 2–3 karakteres nevet függvénynek; írd inline (`[System.IO.File]::ReadAllText($p)`) vagy `Verb-Noun` nevet használj |
 
 Több soros leírás (PR description) átadása: PowerShell **tömbként**, soronként egy elem — a CLI így külön argumentumokként veszi át, és nem kell escape-elni.
 
@@ -152,6 +153,13 @@ $desc = @(
 )
 az repos pr create --repository <repo> --source-branch <br> --target-branch <base> `
   --title '[NX-12345] Subject' --description $desc
+```
+
+A leírás **legfeljebb 4000 karakter** lehet, különben `Invalid argument value. Parameter name: A description for a pull request must not be longer than 4000 characters.` Küldés előtt mérd meg — a hiba csak a teljes összeállítás után derül ki, és a `--description` felülírja a régit, tehát a hosszra bukó hívás után nincs mit visszaállítani:
+
+```powershell
+$len = ($desc -join "`n").Length
+if ($len -lt 4000) { az repos pr update --id <id> --description $desc } else { 'too long' }
 ```
 
 ## Engedélymodell — read szabad, write engedélyköteles
@@ -169,6 +177,11 @@ Ugyanaz a modell, mint a [[git-conventions]] push-policy és a [[terraform-terra
 
 Külön kiemelve: az **`az pipelines run` valódi deployt indíthat** egy környezetbe. Egy "futtasd le a pipeline-t" kérés is előbb visszakérdezést érdemel, ha nem derül ki egyértelműen, melyik pipeline melyik környezetre megy.
 
+Két mutáló művelet, aminél a részletek számítanak:
+
+- **`az pipelines variable-group create`** — `--authorize true` nélkül a group létrejön, de a pipeline-ok nem érik el. Ezzel a flaggel nem kell utólag pipeline-onként engedélyezni a Library UI-ban.
+- **Agent pool jogosultság** (egy pool *Pipeline permissions* listája) — ez **biztonsági beállítás**, nem sima pipeline-konfiguráció: a `pipelinePermissions` REST PATCH-et a harness blokkolja, és jogosan. Ha egy frissen létrehozott (probe) pipeline-nak self-hosted poolra lenne szüksége, ne kerülőutat keress: vagy a felhasználó adja meg a jogot, vagy a validációt olyan **meglévő** pipeline-nal végezd, aminek már megvan.
+
 ### ✅ DO
 
 ```text
@@ -181,6 +194,71 @@ vagy csak az utolsó futás eredményét nézzem meg?
 ```text
 (A felhasználó a futások eredményére kérdezett rá → én "hasznosságból" újra is
 indítom a pipeline-t, hogy friss adat legyen.)
+```
+
+## Resource authorization — új pipeline semmit nem örököl
+
+Egy **frissen létrehozott** pipeline (és az is, amit egy `az pipelines update` átír) egyetlen protected resource-hoz sem kap jogot automatikusan: sem agent poolhoz, sem ADO Environmenthez. Ez akkor is így van, ha a repo társ-pipeline-jai (ugyanaz a pool, ugyanaz a YAML-template) rendben futnak — a jog **pipeline-onként** áll.
+
+A tünet félrevezető: „a másik service ugyanezzel a setuppal megy, ez meg nem". Ne a YAML-t vagy a Terraformot kezdd keresni, hanem hasonlítsd össze a jogokat egy **működő** társ-pipeline-nal.
+
+```powershell
+function Check($type, $id, $label) {
+  $o = az devops invoke --area pipelinePermissions --resource pipelinePermissions `
+         --route-parameters project=<project> resourceType=$type resourceId=$id `
+         --api-version 7.1-preview -o json 2>$null
+  $p = ($o | Where-Object { $_ -notmatch '^Please wait' }) -join "`n" | ConvertFrom-Json
+  "{0,-26} all={1,-6} uj={2,-6} mukodo={3}" -f $label, $p.allPipelines.authorized,
+    [bool]($p.pipelines | Where-Object { $_.id -eq <newPipelineId> }),
+    [bool]($p.pipelines | Where-Object { $_.id -eq <workingPipelineId> })
+}
+Check 'queue'       <queueId>    'pool'
+Check 'environment' <envId>      'environment'
+Check 'endpoint'    <endpointId> 'service connection'
+```
+
+A `resourceType` értékei: `queue` (agent pool), `environment`, `endpoint` (service connection), `repository`, `variablegroup`, `securefile`. A `queue`**Id** a queue id-je, **nem** a pool id — `az devops invoke --area distributedtask --resource queues` adja meg. Ha `allPipelines.authorized = true`, az adott resource-hoz nem kell külön engedély (az MS-hosted `Azure Pipelines` pool tipikusan ilyen).
+
+### A kétféle hibaviselkedés — csak az egyikhez tartozik jóváhagyás
+
+Ez a lényegi rész, és ezen szokott elmenni egy kör:
+
+| Hiányzó jog | Mit tesz a run | Van jóváhagyható prompt? |
+|---|---|---|
+| **agent pool** | a stage azonnal `failed`: `Pipeline does not have permissions to use the referenced pool(s) <név>` | **Nincs.** Hard error, nem várakozó állapot — az „Authorize resources" sáv nem jelenik meg |
+| **environment** | a deployment job `pending`, a timeline-on `Checkpoint.Authorization` = `inProgress` | **Van**, a run oldalán: *„This pipeline needs permission to access a resource"* → **View** → **Permit** |
+
+Ezért hiába kéred a felhasználót, hogy „nyomja meg az Authorize resources gombot", ha a pool joga hiányzik: **nincs ott gomb.** Azt csak a resource *Security → Pipeline permissions* listáján lehet megadni, vagy REST PATCH-csel — amit a harness blokkol (lásd az Engedélymodell agent-pool pontját).
+
+### Ha a Permit promptot akarod előhozni
+
+Ha a pool-hiba előbb üt, mint az environment-check, a run el sem jut a jóváhagyásig. Indítsd a futást olyan poolon, amihez **`allPipelines.authorized = true`** (jellemzően a MS-hosted `Azure Pipelines`) — a korábbi stage-ek átmennek, a run eljut a deployment jobig, és ott feljön a Permit. Ez egyben azt is bizonyítja, hogy a YAML és az infra rendben van, csak jogok hiányoznak.
+
+Ehhez a pipeline-nak pool-választó paramétere kell (`agent_pool: MicrosoftHosted`); a pool nevét futásidőben feloldó `$(agent_pool_name)` minta pont ezt teszi lehetővé.
+
+### ✅ DO
+
+```text
+Az új Deploy pipeline bukik, a társ-pipeline megy → előbb a pipelinePermissions-t
+hasonlítom össze a kettőn (pool + environment + endpoint), és csak utána nézek YAML-t.
+```
+
+```text
+A pool joga hiányzik, tehát nincs Authorize gomb. MS-hosted poolon indítom a runt,
+hogy eljusson az environment-checkig — így a felhasználó tud Permitet nyomni,
+és közben kiderül, hogy a plan/apply tartalmilag jó.
+```
+
+### ❌ DON'T
+
+```text
+(A bukott runra ráküldöm a felhasználót, hogy nyomja meg az „Authorize resources"
+gombot — pool-jog hiányánál ilyen gomb nem létezik, csak keresni fogja.)
+```
+
+```text
+(„A static-content ugyanígy van beállítva és megy, tehát a YAML-em hibás" →
+elkezdem átírni a pipeline-t, pedig egyetlen engedély hiányzik.)
 ```
 
 ## Koncepció-validálás temporary change-dzsel
@@ -381,6 +459,23 @@ $t.records | Where-Object { $_.result -eq 'failed' } | Select-Object type, name,
 A `type` a hierarchia szintjét adja (`Stage` → `Phase` → `Job` → `Task`), így egy lekérésből látszik, melyik task bukott és melyik stage-ben.
 
 Az `--api-version` **kötelező** az `invoke`-nál (a CLI nem talál ki defaultot). Ha nem tudod az area/resource nevet, a REST doksi URL-je adja: `.../_apis/<area>/<resource>`.
+
+**Preview resource-nál a verzió formátuma külön csapda.** A CLI a `--api-version` értékét float-ként is parse-olja, a szerver viszont megköveteli a `-preview` jelölést — a doksiban szereplő `7.1-preview.1` így **mindkét** oldalon elhasal. A működő forma a `-preview` **build-szám nélkül**:
+
+| Amit beírsz | Mit kapsz |
+|---|---|
+| `--api-version 7.1-preview.1` | `ERROR: could not convert string to float: '7.1.1'` (a CLI törik el) |
+| `--api-version 7.1` | `ERROR: The requested version "7.1" ... is under preview. The -preview flag must be supplied` |
+| `--api-version 7.1-preview` | ✅ működik |
+
+Hogy egy resource preview-e, a katalógusból derül ki: `az devops invoke` (paraméter nélkül) kilistázza az összes area/resource párt a `routeTemplate`-tel együtt, és a `releasedVersion: 0.0` jelzi a preview-t. A kimenet elé az `az` egy `Please wait...` sort ír, ezért parse előtt szűrni kell.
+
+```powershell
+$raw = az devops invoke 2>$null | Where-Object { $_ -notmatch '^Please wait' }
+$a = ($raw -join "`n") | ConvertFrom-Json
+$a | Where-Object { $_.resourceName -match 'permission' } |
+  ForEach-Object { "$($_.area)/$($_.resourceName) released=$($_.releasedVersion) route=$($_.routeTemplate)" }
+```
 
 ## Token economy
 

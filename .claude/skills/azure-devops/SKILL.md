@@ -42,6 +42,9 @@ A részletes szabály a `references/azure-devops-cli.md`-ben van. **Olvasd be a 
 | Cron nem indult el / melyik ág YAML-je dönt | Melyik ág YAML-je dönt; Cron trigger — mire nézz |
 | Mi indította a futást / „nem is futott le" | A futás metaadata félrevezető |
 | Melyik build artifactját deployolja | Pipeline resource — melyik build artifactját kapod |
+| Új pipeline bukik, pedig a társa ugyanígy megy | Resource authorization — új pipeline semmit nem örököl |
+| „Nyomd meg az Authorize resources gombot" — de nincs ott gomb | Resource authorization → A kétféle hibaviselkedés |
 | Build log, melyik stage bukott | REST fallback (`az devops invoke`) |
+| `az devops invoke` preview resource-on elhasal | REST fallback → preview verzió-formátum |
 | Nagy lista, sok találat | Token economy |
 | `git push` az ADO remote-ra nem megy | Git remote auth (külön credential) |

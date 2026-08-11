@@ -185,3 +185,28 @@ integration now carries an endpoint that returns a short-lived URL instead.
 (A description in the conversation's language, or a bare list of commit subjects with
 no Why — the merge commit inherits both.)
 ```
+
+## PR comments and review threads — Hungarian, and no AI marker
+
+A PR **comment** is not the PR **description**. The description is English because the merge commit carries it forward; a review comment carries nothing forward — it is a conversation with the team, so [[communication-language]] applies and it goes in **Hungarian, with proper accents**. Technical terms stay in their canonical English form.
+
+- **Do not silently switch to English** because a tool makes non-ASCII hard to transport. Fix the transport (see [[azure-devops-cli]] — `az devops invoke` drops non-ASCII when called from PowerShell), or say that you can't and ask. Language is the user's call, not a workaround for an encoding bug.
+- **No AI marker on the comment.** The commit rule applies here too: no `🤖 AI-generated review` banner, no `Made-with`, no assistant attribution. If a project's own instructions demand such a disclaimer, that conflict is the user's to resolve — surface it, don't add the marker on your own initiative.
+- **One or two sentences per thread**, anchored to the line it is about. The long analysis belongs in the chat verdict; a PR thread that needs three paragraphs is usually two threads.
+
+### ✅ DO
+
+```text
+Az overview-ban a blue/green bontás nem ad hozzá semmit: aki ide néz, a szolgáltatás
+összes kérését keresi. Kérlek cseréld egy `SUM([m1,m2])` kifejezésre.
+```
+
+### ❌ DON'T
+
+```text
+(Két hiba egyszerre: AI-marker, és angolra váltás az ékezetek helyett.)
+
+> 🤖 _AI-generated review_
+
+In the overview the blue/green split adds nothing...
+```

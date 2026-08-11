@@ -270,6 +270,38 @@ A bejelölt paraméter `"true"` **stringként**, a nem bejelölt a default `fals
 
 **Környezetenkénti deploynál előbb a Build kell.** Ha a deploy pipeline `pipelines:` resource-ként hivatkozik a build pipeline-ra a *saját* branchével (`branch: ${{ replace(variables['Build.SourceBranch'], 'refs/heads/', '') }}`), akkor egy feature branchen **először a Buildet kell manuálisan lefuttatni**, különben nincs `infra` artifact, amit a deploy letölthetne. A build CI-triggerében jellemzően nincs `feature/*`, tehát magától soha nem futott le rajta.
 
+### PR-komment feltöltése — resource-név és kódolás (kritikus)
+
+A PR-review kommentek a **thread** API-n mennek, amit a CLI nem fed le, tehát `az devops invoke`. Két csapda, mindkettő mérve:
+
+**1. A resource neve `pullRequestThreads`, nem `threads`.** A rossz névre kapott hiba félrevezet, mert az `--api-version`-re mutat:
+
+```
+ERROR: --resource and --api-version combination is not correct
+```
+
+Ne az api-version formátumot kezdd variálni — a katalógus adja meg a helyes nevet (`az devops invoke` paraméter nélkül, `resourceName` mező). A meglévő komment szerkesztése külön resource: `pullRequestThreadComments`, `threadId` + `commentId` route-paraméterrel.
+
+```bash
+az devops invoke --area git --resource pullRequestThreads \
+  --route-parameters project=<project> repositoryId=<repoGuid> pullRequestId=<id> \
+  --http-method POST --in-file body.json --api-version 7.1 --org … --detect false
+```
+
+A body: `{"comments":[{"parentCommentId":0,"content":"…","commentType":"text"}],"status":"active"}`, inline kommenthez plusz `threadContext` (`filePath` repo-root-relatív `/`-sel kezdve, `rightFileStart`/`rightFileEnd`).
+
+**2. PowerShellből a nem-ASCII tartalom elveszik — Git Bashből átmegy.** Ez a fontosabb: magyar, ékezetes kommentnél PowerShell alól az `az.cmd` wrapperen keresztül az ékezetek és a gondolatjelek **eldobásra kerülnek** a HTTP bodyból, a hívás mégis `200`-at ad, tehát csendes adatvesztés. A `\uXXXX`-escape-elt (tehát tiszta ASCII) body **sem** segít, mert az `az` a beolvasott JSON-t újraszerializálja. A `PYTHONUTF8=1` sem elég.
+
+Ugyanez a rekord visszaolvasva Git Bashből, változatlan bodyval, hibátlan:
+
+```
+SAVED CONTENT: 'Próba: árvíztűrő tükörfúrógép — vége.'
+```
+
+Ezért **nem-ASCII tartalmú PR-kommentet Git Bashből (vagy Bashből hívott Python `subprocess`-ből) küldj**, ne PowerShellből. Ellenőrizd a PATCH/POST **válaszában** visszakapott `content`-et, ne a saját bemenetedet — a küldés sikerét csak a szerver által eltárolt szöveg igazolja.
+
+**Kapcsolódó csapda:** a PowerShellben többször átírt (`ReadAllText`/`WriteAllText`) generált scriptben az ékezetek sérülhetnek (`U+FFFD`), és onnantól a helyes escape-elés is a sérült szöveget escape-eli. Generált scriptet **ne** patch-elj PowerShellből — írd újra, és a futtatás előtt ellenőrizd (`grep`/Python), hogy a fájlban tényleg ott vannak-e az ékezetek.
+
 Két további mutáló művelet, aminél a részletek számítanak:
 
 - **`az pipelines variable-group create`** — `--authorize true` nélkül a group létrejön, de a pipeline-ok nem érik el. Ezzel a flaggel nem kell utólag pipeline-onként engedélyezni a Library UI-ban.

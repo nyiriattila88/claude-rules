@@ -290,15 +290,23 @@ az devops invoke --area git --resource pullRequestThreads \
 
 A body: `{"comments":[{"parentCommentId":0,"content":"…","commentType":"text"}],"status":"active"}`, inline kommenthez plusz `threadContext` (`filePath` repo-root-relatív `/`-sel kezdve, `rightFileStart`/`rightFileEnd`).
 
-**2. PowerShellből a nem-ASCII tartalom elveszik — Git Bashből átmegy.** Ez a fontosabb: magyar, ékezetes kommentnél PowerShell alól az `az.cmd` wrapperen keresztül az ékezetek és a gondolatjelek **eldobásra kerülnek** a HTTP bodyból, a hívás mégis `200`-at ad, tehát csendes adatvesztés. A `\uXXXX`-escape-elt (tehát tiszta ASCII) body **sem** segít, mert az `az` a beolvasott JSON-t újraszerializálja. A `PYTHONUTF8=1` sem elég.
+**2. A nem-ASCII tartalom csendben elveszhet — a konzol codepage dönti el.** Magyar, ékezetes kommentnél az ékezetek eltűnhetnek a felküldött szövegből úgy, hogy a hívás `200`-at ad: csendes adatvesztés. A `\uXXXX`-escape-elt (tiszta ASCII) body **sem** segít, mert az `az` a beolvasott JSON-t újraszerializálja, és a kimenetét a konzol codepage-én (Windowson `cp1250`) kódolja.
 
-Ugyanez a rekord visszaolvasva Git Bashből, változatlan bodyval, hibátlan:
+A szabály nem az, hogy „PowerShell rossz, Bash jó" — hanem hogy **egyetlen nem-cp1250-kódolható karakter az egész tartalom nem-ASCII részét eldobja**. Mérve:
 
-```
-SAVED CONTENT: 'Próba: árvíztűrő tükörfúrógép — vége.'
-```
+| A bodyban szerepel | Eredmény |
+|---|---|
+| csak magyar ékezet + em dash (`—`, U+2014) — mind cp1250-ben van | ✅ hibátlanul felmegy |
+| bárhol egy `→` (U+2192) vagy emoji (`🤖`) — nincs cp1250-ben | ❌ **az összes** ékezet is eltűnik |
 
-Ezért **nem-ASCII tartalmú PR-kommentet Git Bashből (vagy Bashből hívott Python `subprocess`-ből) küldj**, ne PowerShellből. Ellenőrizd a PATCH/POST **válaszában** visszakapott `content`-et, ne a saját bemenetedet — a küldés sikerét csak a szerver által eltárolt szöveg igazolja.
+Ez ugyanaz a mechanizmus, ami a `WARNING: Unable to encode the output with cp1250 encoding. Unsupported characters are discarded.` sorban látszik.
+
+Következmények:
+
+- **Kerüld a nem-cp1250 karaktereket** a komment szövegében: `→` helyett `->` vagy szó, nyilak/emoji helyett sima írásjel. Az em dash és a magyar ékezetek mehetnek.
+- **A thread-létrehozó POST így is sérülhet.** A működő recept: `POST`-tal létrehozni (a tartalom romolhat), majd a valódi szöveget `pullRequestThreadComments` **PATCH**-csel beírni — a PATCH bizonyítottan megőrzi a tartalmat.
+- **Az ellenőrzés csak egyedi thread GET-tel megbízható** (`threadId=<id>`). A thread-**lista** GET-je félrevezet: ha a PR-en van egy *másik* komment emojival (például egy korábbi AI-review pipeline `🤖` bannere), az az egész lista-kimenet nem-ASCII tartalmát megtisztítja, és a saját, helyesen eltárolt kommentjeid is ékezet nélkülinek látszanak.
+- Mindig a **szerver által visszaadott** `content`-et ellenőrizd, ne a saját bemenetedet.
 
 **Kapcsolódó csapda:** a PowerShellben többször átírt (`ReadAllText`/`WriteAllText`) generált scriptben az ékezetek sérülhetnek (`U+FFFD`), és onnantól a helyes escape-elés is a sérült szöveget escape-eli. Generált scriptet **ne** patch-elj PowerShellből — írd újra, és a futtatás előtt ellenőrizd (`grep`/Python), hogy a fájlban tényleg ott vannak-e az ékezetek.
 

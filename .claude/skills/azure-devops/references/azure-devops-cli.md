@@ -240,7 +240,37 @@ Ugyanaz a modell, mint a [[git-conventions]] push-policy és a [[terraform-terra
 
 Külön kiemelve: az **`az pipelines run` valódi deployt indíthat** egy környezetbe. Egy "futtasd le a pipeline-t" kérés is előbb visszakérdezést érdemel, ha nem derül ki egyértelműen, melyik pipeline melyik környezetre megy.
 
-Két mutáló művelet, aminél a részletek számítanak:
+### Pipeline-indítás — a „nem indult el" csapda (kritikus)
+
+Deploy indításánál két, egymást erősítő félrevezetés okoz **duplikált futást ugyanarra a Terraform state-re**. Mérve `azure-devops` extension 1.0.5-tel:
+
+1. **A `--output table` elhasal a run-válaszon, de a run ekkor is létrejön.**
+
+   ```
+   ERROR: Table output unavailable. Use the --query option to specify an appropriate query.
+   ```
+
+   Ez **formázási** hiba, nem indítási hiba: a POST már lefutott, a pipeline elindult. Aki a hibaüzenetre reagálva újra kiadja a parancsot, két párhuzamos deployt kap. Indításnál ezért **mindig `-o json`** — az a run objektumot adja vissza (`id`, `resources.repositories.self.version`).
+
+2. **A frissen indított run nem látszik azonnal a `runs list`-ben.** A `az pipelines runs list` a Build API-n keresztül indexelt adatot ad, ott másodpercekig üres marad az új run — a Runs GET viszont azonnal válaszol. Tehát a „`runs list` nem mutatja → nem indult el" következtetés **hibás**:
+
+   ```powershell
+   az devops invoke --area pipelines --resource runs `
+     --route-parameters project=<project> pipelineId=<id> runId=<runId> `
+     --api-version 7.1 --org https://dev.azure.com/<org> --detect false -o json
+   ```
+
+**A `--parameters` template paraméterként megy át.** Egy `parameters:` blokkban deklarált runtime paramétert (pl. `deploy_dev`) a `az pipelines run --parameters deploy_dev=true` **helyesen** template paraméterként ad át ebben a verzióban — nem változóként. Ellenőrizni utólag a fenti GET `templateParameters` mezőjével kell:
+
+```
+tp = {"deploy_dev":"true","deploy_qa":false,"deploy_stg":false,"deploy_prod":false}
+```
+
+A bejelölt paraméter `"true"` **stringként**, a nem bejelölt a default `false`-ként jelenik meg. Ugyanez a mező mondja meg utólag egy **korábbi** runról, hogy melyik környezetre ment — ez a leggyorsabb, read-only válasz a „ki telepített ide és mit" kérdésre, gyorsabb, mint a timeline stage-einek végigolvasása.
+
+**Környezetenkénti deploynál előbb a Build kell.** Ha a deploy pipeline `pipelines:` resource-ként hivatkozik a build pipeline-ra a *saját* branchével (`branch: ${{ replace(variables['Build.SourceBranch'], 'refs/heads/', '') }}`), akkor egy feature branchen **először a Buildet kell manuálisan lefuttatni**, különben nincs `infra` artifact, amit a deploy letölthetne. A build CI-triggerében jellemzően nincs `feature/*`, tehát magától soha nem futott le rajta.
+
+Két további mutáló művelet, aminél a részletek számítanak:
 
 - **`az pipelines variable-group create`** — `--authorize true` nélkül a group létrejön, de a pipeline-ok nem érik el. Ezzel a flaggel nem kell utólag pipeline-onként engedélyezni a Library UI-ban.
 - **Agent pool jogosultság** (egy pool *Pipeline permissions* listája) — ez **biztonsági beállítás**, nem sima pipeline-konfiguráció: a `pipelinePermissions` REST PATCH-et a harness blokkolja, és jogosan. Ha egy frissen létrehozott (probe) pipeline-nak self-hosted poolra lenne szüksége, ne kerülőutat keress: vagy a felhasználó adja meg a jogot, vagy a validációt olyan **meglévő** pipeline-nal végezd, aminek már megvan.

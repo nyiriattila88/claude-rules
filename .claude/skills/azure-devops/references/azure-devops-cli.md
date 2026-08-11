@@ -67,6 +67,7 @@ Interaktívan bekéri a PAT-ot, és a Credential Managerbe teszi. Non-interaktí
 
 | Tünet | Ok | Teendő |
 |---|---|---|
+| `Before you can run Azure DevOps commands, you need to run the login command` | **nem** lejárt PAT: az org-detect rossz keyring-kulcsot képez | tedd ki az `--org`-ot és a `--detect false`-t — lásd a következő szekciót |
 | `TF400813`, `401 Unauthorized` | lejárt vagy visszavont PAT | **új PAT + `az devops login`** — ne telepíts újra, ne `az login` |
 | `403 Forbidden` egy konkrét parancsnál | a PAT scope-ja kevés | új token a hiányzó scope-pal |
 | `Please run 'az login' to setup account` | **nem** az `az devops` hibája — egy sima `az` (ARM) parancsot futtattál | ez az `az devops`-t nem érinti |
@@ -86,13 +87,75 @@ Kérek új tokent Code (Read) scope-pal, majd `az devops login --org ...`.
 (Egyik sem segít: az `az devops` nem az ARM-tokent használja.)
 ```
 
+## Org-feloldás — a hamis „nincs bejelentkezve" hiba (kritikus)
+
+Ha egy `az devops`/`az repos`/`az pipelines` parancs **egyáltalán nem éri el** az Azure DevOps-ot, a leggyakoribb ok nem az auth, hanem az **org-detektálás**. `--org` nélkül az extension a git remote-ból találja ki az orgot, és a remote `user@` prefixéből **rossz keyring-kulcsot** képez:
+
+| Amit a detect keres | Ahol a credential valójában van |
+|---|---|
+| `azdevops-cli:https://nexius-aether@dev.azure.com/nexius-aether` | `azdevops-cli:https://dev.azure.com/nexius-aether` |
+
+Az eredmény egy félrevezető hibaüzenet — pedig a PAT él:
+
+```
+ERROR: Before you can run Azure DevOps commands, you need to run the login command
+(az login if using AAD/MSA identity else az devops login if using PAT token) to setup credentials.
+```
+
+**A beállított default ettől nem védi meg.** Mérve egy Aether/Backend checkoutban: az `az devops configure --list` kiírja az `organization` + `project` defaultot, az `az devops project list` ugyanabban a cwd-ben mégis a fenti hibát adja, `--org … --detect false`-szal viszont azonnal válaszol. A detect a repo-kontextusból indul, így a default nem jut szóhoz.
+
+### A működő forma
+
+```bash
+az devops project list --org https://dev.azure.com/<org> --detect false -o table
+az repos pr show --id <n> --org https://dev.azure.com/<org> --detect false
+az pipelines runs list --pipeline-ids <id> --top 5 --org https://dev.azure.com/<org> -p <project> --detect false
+```
+
+- A `--detect false` a legbiztosabb: így a detect akkor sem fut le, ha a parancsnak van repo-kontextusa.
+- A `-p <project>` a projekt-scope-ú parancsokhoz kell (`az pipelines`, `az boards`, `az repos list`) — detect nélkül a default project sem oldódik fel magától.
+- Az orgot és a projectet a remote adja meg, a `user@` rész **nélkül**:
+
+```bash
+git remote -v
+# origin  https://Nexius-Aether@dev.azure.com/Nexius-Aether/Backend/_git/static-content
+#                                             ^^^^^^^^^^^^^ org       ^^^^^^^ project
+```
+
+Aether/Backend checkoutokban ez konkrétan `--org https://dev.azure.com/Nexius-Aether -p Backend`.
+
+### Ha mégis auth-hibára gyanakszol
+
+- `--debug` mellett a kimenetben ott van, hogy `PAT is present which can be used against this instance` — ha ez látszik, **a token él**, és a hiba a detektált org-stringből jön.
+- A sandboxolt shell ugyanezt a hibát adja; a sandbox kikapcsolása **nem** segít, a gyökér az org-mismatch.
+- A működő `git push`/`git fetch` sem bizonyíték az `az devops` authjáról, és a fordítottja sem: az külön credential (lásd *Git remote auth*).
+
+### ✅ DO
+
+```text
+Minden `az devops`/`az repos`/`az pipelines` hívásba kiírom az `--org`-ot és a `--detect false`-t,
+és egy `az devops project list`-tel smoke-tesztelek, mielőtt a valódi lekérdezést indítom.
+```
+
+### ❌ DON'T
+
+```text
+„Before you can run Azure DevOps commands..." → új PAT-ot kérek és `az devops login`-t futtatok.
+(A tárolt token él; csak a detektált org-string rossz — a login semmit nem javít.)
+```
+
+```text
+`az login`-t futtatok, vagy újratelepítem az `azure-devops` extensiont, esetleg a sandboxot
+kapcsolom ki. (Egyik sem a hiba oka; a hiányzó `--org` az.)
+```
+
 ## Defaultok
 
 ```bash
 az devops configure --defaults organization=https://dev.azure.com/<org> project=<project>
 ```
 
-Ha be vannak állítva, **hagyd el** a `--org`/`-p` flageket — rövidebb parancs, kevesebb token. Kivétel: **megosztott vagy scriptbe kerülő** recepthez írd ki explicit, mert a default gépfüggő, és a másik gépen csendben más org ellen futna.
+A default hasznos **dokumentációként** (a `configure --list` megmondja, melyik org/project a szokásos), de **ne hagyatkozz rá**: repo-kontextusban az org-detect előbb fut, és a fenti hamis login-hibát adja. Írd ki az `--org`-ot és a `--detect false`-t akkor is, ha a default be van állítva — scriptbe kerülő recepthez pedig különösen, mert a default gépfüggő, és a másik gépen csendben más org ellen futna.
 
 ## PowerShell quoting trap (kritikus)
 

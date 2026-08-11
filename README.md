@@ -32,6 +32,7 @@ claude-rules/
       documentation-style.md
       git-conventions.md
       git-line-endings.md
+      deployment-path.md
       session-naming.md
     skills/                        # domain, on-demand
       dotnet/
@@ -158,4 +159,5 @@ A skill's `SKILL.md` should stay a thin dispatcher (trigger + an index of which 
 - Keep rules short (< 500 lines) and focused on one topic.
 - `.claude/rules/claude-meta-rule.md` is the meta-rule for how to handle `.md` rule files in this repo.
 - `.claude/rules/token-economy.md` was added as a standalone cross-cutting rule because token-cost vs. speed trade-offs are an agent-behavior concern that did not fit any existing rule file.
+- `.claude/rules/deployment-path.md` was added as a standalone core rule because choosing the deployment mechanism has to happen **before** the `terraform` skill would be triggered — a "deploy this to DEV" request must not go straight to a local `apply` when a pipeline owns the deployment. It is eagerly imported for that reason; the `terraform` skill only cross-references it.
 - Treat the rule files as the single source of truth; do not duplicate the content in other places.

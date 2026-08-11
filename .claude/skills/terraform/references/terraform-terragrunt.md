@@ -258,6 +258,7 @@ megnéznéd, hátha WSL alatt elérhető.)
 
 ## `apply` requires explicit permission (critical)
 
+- **First check whether a CI/CD pipeline owns the deployment** — see [[deployment-path]]. If a GitHub Actions workflow or an Azure DevOps pipeline deploys this repo, that is the deployment path, and a local `apply` is the wrong tool whether or not permission was given. The local `apply` is the fallback only when no pipeline exists; being locked out of the pipeline (no PAT, no `gh auth`) is not such a case.
 - **Never run `apply` on your own initiative.** Any state-changing command — `terraform apply`, `terragrunt apply`, `tofu apply` (and `destroy`, `run-all apply/destroy`) — may be executed **only** with the user's explicit permission.
 - **Always ask first**, unless the user has authorized it in the current prompt — in that case you may run it.
 - **`plan` is always safe.** Read-only commands (`plan`, `validate`, `fmt`, `output`, `state list`) need no permission; run them freely to show what an `apply` would change, then wait for approval.

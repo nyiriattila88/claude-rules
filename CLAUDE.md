@@ -45,6 +45,7 @@ After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`
 @.claude/rules/documentation-style.md
 @.claude/rules/git-conventions.md
 @.claude/rules/git-line-endings.md
+@.claude/rules/deployment-path.md
 @.claude/rules/session-naming.md
 
 ## What each core rule covers
@@ -59,6 +60,7 @@ After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`
 | `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |
 | `git-conventions.md` | Jira `[NX-32472]` commit prefix, `feature/NX-32472_purpose` branch naming, commit message format, no AI-tool markers, push only with permission, small commits, PR description format (English, Why/What/Notes — the merge commit carries it). |
 | `git-line-endings.md` | `.gitattributes` policy and CRLF/LF normalization. |
+| `deployment-path.md` | **On any deployment request, check for a real CI/CD path first** (GitHub Actions workflow / Azure DevOps pipeline) and use it; local `terraform`/`terragrunt`/`tofu apply` is the fallback only when no pipeline exists. A missing credential is not a reason to fall back. Triggering the pipeline needs permission. |
 | `session-naming.md` | Start each session title with the repo/folder name so sessions stay scannable across projects. |
 
 ## Skills (on-demand, `.claude/skills/`)

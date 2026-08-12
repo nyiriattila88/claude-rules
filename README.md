@@ -34,6 +34,7 @@ claude-rules/
       git-line-endings.md
       deployment-path.md
       session-naming.md
+      shell-path-conversion.md
     skills/                        # domain, on-demand
       dotnet/
         SKILL.md
@@ -57,7 +58,12 @@ claude-rules/
         references/terraform-terragrunt.md
       aws/
         SKILL.md
-        references/aws-documentation.md
+        references/
+          aws-documentation.md
+          aws-orphan-resource-audit.md
+      jira/
+        SKILL.md
+        references/jira-issue-conventions.md
       azure-devops/
         SKILL.md
         references/azure-devops-cli.md
@@ -86,7 +92,7 @@ macOS/Linux:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`, and `devils-advocate-review` trigger from any project.
+After linking, `dotnet`, `terraform`, `aws`, `jira`, `azure-devops`, `local-code-review`, and `devils-advocate-review` trigger from any project.
 
 ## Using with a symlink (recommended)
 
@@ -160,4 +166,6 @@ A skill's `SKILL.md` should stay a thin dispatcher (trigger + an index of which 
 - `.claude/rules/claude-meta-rule.md` is the meta-rule for how to handle `.md` rule files in this repo.
 - `.claude/rules/token-economy.md` was added as a standalone cross-cutting rule because token-cost vs. speed trade-offs are an agent-behavior concern that did not fit any existing rule file.
 - `.claude/rules/deployment-path.md` was added as a standalone core rule because choosing the deployment mechanism has to happen **before** the `terraform` skill would be triggered — a "deploy this to DEV" request must not go straight to a local `apply` when a pipeline owns the deployment. It is eagerly imported for that reason; the `terraform` skill only cross-references it.
+- `.claude/rules/shell-path-conversion.md` was added as a standalone core rule because the corruption it describes is **silent** and not tied to one tool: Git Bash rewrites any `/`-leading argument, so the empty result can come from `aws`, `az`, `kubectl` or `gh` alike, and no skill trigger reliably covers all of them. It is eagerly imported because the failure looks like valid evidence — an empty result set — and acting on it can mean deleting a live resource.
+- `.claude/skills/jira/` was added as a new skill because Jira issue conventions (which custom field carries the Acceptance Criteria, what shape `Account` and `Team` expect, what the MCP cannot do) did not fit `azure-devops` — Jira and Azure DevOps Boards are separate systems — and are too project-specific and detailed for a core rule.
 - Treat the rule files as the single source of truth; do not duplicate the content in other places.

@@ -29,6 +29,21 @@ Treat the diff as a **candidate list**, never a delete list. For each candidate,
 
 Two independent signals agreeing on the same date (e.g. a firehose role's `RoleLastUsed` matching the bucket's newest object) is the gold standard.
 
+## Measured traffic — the strongest evidence, and how to not get it wrong
+
+Structural arguments ("not in state", "no reference in the repo") say a resource is *unmanaged*. **CloudWatch traffic says whether it is *used*** — that is the stronger claim, and it belongs in the ticket as a number. Useful metrics, where a missing datapoint genuinely means zero activity: SQS `NumberOfMessagesSent`/`NumberOfMessagesReceived`, SNS `NumberOfMessagesPublished`, DynamoDB `ConsumedReadCapacityUnits`/`ConsumedWriteCapacityUnits`, Lambda `Invocations`, Logs `IncomingLogEvents`/`IncomingBytes`, ApiGateway `Count`, States `ExecutionsStarted`, Firehose `IncomingRecords`.
+
+Batch with `get_metric_data` (up to 500 queries per call) rather than one `get_metric_statistics` per resource — hundreds of resources otherwise mean thousands of calls.
+
+Four traps, each of which produced a wrong conclusion in practice:
+
+- **A large `Period` silently returns no data.** Asking for a single 30-day bucket (`Period: 2592000`) returned **empty values for the whole `AWS/Logs` namespace**, which read as "zero traffic" — a log group with 126,779 events looked dead. Use **`Period: 86400` and sum the daily datapoints yourself.** Cross-check one known-busy resource before trusting a whole run; note the bug can only produce false *zeros*, never false traffic, so a verified candidate list stays valid.
+- **A short window is not enough.** A queue measured over 30 days showed zero and turned out to have carried **20 million messages** in the preceding 150 days. Use **180 days** for anything that feeds a deletion proposal.
+- **Zero traffic on a dead-letter queue is the healthy state.** A DLQ with messages means something is failing. Never list DLQs as unused resources; they go only with their parent queue.
+- **Zero in one environment means nothing.** Aggregate per resource *name* across all accounts: zero everywhere it exists is a dead feature; zero in dev only means the feature is not exercised there.
+
+Also read the *shape* of the drop-off, not just the total. A `NumberOfMessagesSent` daily series whose last non-zero day walks **qa → stg → prod about a month apart** is the signature of a deliberate, release-paced decommission — not an outage. When you see that, the finding is "a retirement that was not finished on the AWS side", and the question to ask is whether the successor is live *in every* environment: the same audit found the successor fully live in stg and effectively unused in prod, which turns a cleanup ticket into a mid-rollout migration question.
+
 ## Known false positives — untracked but LIVE
 
 These come up in almost every sweep. Deleting them causes an incident:

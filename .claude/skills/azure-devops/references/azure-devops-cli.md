@@ -700,6 +700,14 @@ Invoke-RestMethod -Uri "https://vsrm.dev.azure.com/<org>/<project>/_apis/release
 A PUT a **teljes** definíciót várja a helyes `revision`-nel — részleges body-val `400`-at kapsz. A PAT-nak
 `Release (read, write, execute, manage)` scope kell; a build-scope nem elég hozzá.
 
+**A `ConvertTo-Json -Depth` a full-definition PUT csendes rontója.** Egy release definíció mélyen ágyazott
+(`environments` → `deployPhases` → `workflowTasks` → `inputs`), és a PS 5.1 `ConvertTo-Json` a `-Depth`
+túllépését **nem jelzi**: a limit alatti szintek helyére a .NET típusnevét írja stringként, a PUT pedig
+elfogadja a megcsonkított definíciót. Ha a `triggers`-en kívül semmit nem akarsz átírni, **ne szerializálj
+újra**: cseréld ki a `triggers` tömböt a nyers JSON stringben — zárójel-számlálással, a string-literálokat
+átlépve —, így minden más bájt érintetlen marad. A kész bodyt `\uXXXX`-escape-elve írd ki: tiszta ASCII
+lesz, amibe semmilyen codepage nem tud belerondítani.
+
 #### ✅ DO
 
 ```text

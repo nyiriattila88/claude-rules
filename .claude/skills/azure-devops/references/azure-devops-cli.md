@@ -722,6 +722,54 @@ nem az devops invoke-ot.
 kezdem el csiszolni — miközben a kérés el sem jut a release szolgáltatásig.)
 ```
 
+### A `revision` a párhuzamos módosítás egyetlen megbízható jelzője
+
+Egy release definíció felderítése és a rá kiadott PUT között az állapot **elmozdulhat**: egy másik session,
+egy kolléga vagy egy másik eszköz ugyanazon a definíción dolgozhat. A `revision` az API optimistic
+concurrency kulcsa, és minden mentés **+1**-gyel lépteti — ez a legrövidebb bizonyíték arra, hogy a
+snapshotod még érvényes-e.
+
+Ez nem elméleti: egy mérésben 41 definíció snapshotja `rev=N`-nél készült el, a PUT előtti ellenőrzés
+viszont már `rev=N+1`-et és **üres `triggers`-t** talált — egy párhuzamos futás közben elvégezte ugyanazt
+a munkát. A `modifiedOn` másodpercre megadta, mikor, a `modifiedBy` pedig azt, hogy ugyanazzal az
+identitással.
+
+Mit visz az elavult snapshot PUT-ja:
+
+| A bodyban lévő `revision` | Amit kapsz |
+|---|---|
+| a régi | `400` — a szerver eldobja; ez a **jó** eset |
+| a frissre igazított, de a tartalom régi | ✅ átmegy, és **visszaírja a már törölt triggert** — csendes regresszió |
+
+Ezért a mutáló művelet előtt **közvetlenül** kérdezd újra az állapotot. Projektenként egyetlen hívás elég,
+mert a lista `$expand=Triggers`-szel a triggereket is visszaadja — nem kell 41 definíció-szintű GET:
+
+```powershell
+az devops invoke --area release --resource definitions --route-parameters project=<p> `
+  --query-parameters '$expand=Triggers' --api-version 7.1 --org <org> --detect false -o json
+```
+
+#### „Nem az én hívásom írt bele?" — a no-op kontrollpont
+
+Ha felmerül, hogy egy elvileg **read-only** lépésed módosított (mert a `revision` nőtt, mióta ránéztél),
+ne feltételezésből dönts: keress egy objektumot, **amin a művelet no-op lett volna**, és nézd meg annak a
+`revision`-jét. Mérve: annak a definíciónak, amelyiknek eleve nem volt CD triggere, a `revision`-je a
+GET-ek után is változatlan maradt — ez bizonyítja, hogy a GET nem ír, és a változást más okozta.
+
+#### ✅ DO
+
+```text
+41 definíciót módosítanék → a PUT előtt újrakérdezem a listát $expand=Triggers-szel, és a revisiont
+összevetem a snapshotommal. Eltérésnél megállok és jelentem, nem írom felül.
+```
+
+#### ❌ DON'T
+
+```text
+(A felderítéskori snapshotot PUT-olom fél órával később, mert „csak a triggers mezőt írom" — és közben
+visszaírom azt a triggert, amit egy párhuzamos futás már levett.)
+```
+
 ## Token economy
 
 Az Azure DevOps válaszok nagyok (egy build definition JSON-ja több kB). A [[token-economy]] itt konkrétan ezt jelenti:

@@ -319,9 +319,29 @@ amivel elrontotta: a `content` a terminálban hibátlannak látszik, a böngész
 
 | Ellenőrzés | Megbízható? |
 |---|---|
-| `az devops invoke ... -o json` visszaolvasás | ❌ öndekódoló hazugság |
+| `az devops invoke ... -o json` kimenete **UTF-8-ként** olvasva | ❌ öndekódoló hazugság |
+| ugyanaz a kimenet **cp1250-ként** dekódolva, codepage-warning nélkül | ✅ bájthű |
 | `Invoke-RestMethod` (PAT-tal, `az` nélkül) | ✅ a tárolt tartalmat adja |
 | böngésző | ✅ |
+
+**Az `az` kimenetét cp1250-ként kell dekódolni — és a hazugság szimmetrikus.** Az `az` a stdout-ot a
+Windows ANSI codepage-én (`cp1250`) írja. Ezen **sem** a `PYTHONIOENCODING=utf-8` változtat (az `az.cmd`
+`-IE`, azaz isolated módban indítja a Pythont, így a `PYTHON*` env-vars nem érvényesülnek), **sem** a
+`chcp 65001`, ha a kimenet fájlba megy. Ugyanazon a PR-kommenten mérve:
+
+| A szerveren | `az` bájtjai | UTF-8-ként olvasva | cp1250-ként olvasva |
+|---|---|---|---|
+| helyes `é` | `E9` | `U+FFFD` → **hamis riasztás** | `é` ✅ |
+| romlott `Ă©` | `C3 A9` | `é` → **hamis megnyugvás** | `Ă©` ✅ |
+
+A felső sor a drágább: egy **ép** kommentről hiszed, hogy romlott, és „javításként" újraírod. A
+`WARNING: Unable to encode…` **hiánya** itt bizonyíték — ha nem jött, minden karakter cp1250-ben volt,
+tehát a cp1250-dekódolás bájthű, és `Ã`-típusú (cp1250-en kívüli) mojibake nincs a tartalomban.
+
+**A PAT-os REST út blokkolható, ezért kell `az`-only fallback.** A Credential Manager olvasását
+(`cmdkey /list`, `CredRead` P/Invoke) a harness classifier megtagadhatja, és az `az account
+get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798` sem ad tokent Entra-session nélkül.
+Ilyenkor ne kerülgesd a tiltást: a cp1250-dekódolás + warning-figyelés az `az`-zal is elegendő.
 
 Recept, ha magyar szöveget küldesz PowerShellből:
 

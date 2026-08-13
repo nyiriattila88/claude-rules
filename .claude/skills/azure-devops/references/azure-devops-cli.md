@@ -353,6 +353,20 @@ Recept, ha magyar szöveget küldesz PowerShellből:
    `CredRead` P/Invoke-kal), így nem kell külön tokent kérned.
 4. **Az ellenőrzés REST-tel történjen**, ne az `az`-zal.
 
+**Mielőtt „javítanál": ellenőrizd, hogy nem javította-e már valaki.** Egy képernyőkép — vagy egy korábbi
+session emléke — a szerver **múltbeli** állapotát mutatja, nem a mostanit. A komment metaadata megmondja
+az igazat: ha a `lastContentUpdatedDate` későbbi a `publishedDate`-nél, a kommentet már szerkesztették.
+
+```powershell
+# ha lastContentUpdated > published, akkor a kommentet mar atirtak
+$c.publishedDate; $c.lastContentUpdatedDate
+```
+
+Mérve: egy 49 PR-es sorozat mind a 49 kommentjét egy korábbi session már kijavította — a
+`lastContentUpdatedDate` mindegyiken **6 másodpercen belülre** esett (automatizált PATCH-sorozat nyoma),
+a `publishedDate` viszont egy órával korábbra. A képernyőkép alapján indított vak újraírás itt egy **ép**
+állapotot írt volna felül. Egy tömeges javítás első lépése ezért a felmérés, nem a PATCH.
+
 **Kapcsolódó csapda:** a PowerShellben többször átírt (`ReadAllText`/`WriteAllText`) generált scriptben az ékezetek sérülhetnek (`U+FFFD`), és onnantól a helyes escape-elés is a sérült szöveget escape-eli. Generált scriptet **ne** patch-elj PowerShellből — írd újra, és a futtatás előtt ellenőrizd (`grep`/Python), hogy a fájlban tényleg ott vannak-e az ékezetek.
 
 Két további mutáló művelet, aminél a részletek számítanak:

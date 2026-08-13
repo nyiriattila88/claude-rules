@@ -308,6 +308,31 @@ Következmények:
 - **Az ellenőrzés csak egyedi thread GET-tel megbízható** (`threadId=<id>`). A thread-**lista** GET-je félrevezet: ha a PR-en van egy *másik* komment emojival (például egy korábbi AI-review pipeline `🤖` bannere), az az egész lista-kimenet nem-ASCII tartalmát megtisztítja, és a saját, helyesen eltárolt kommentjeid is ékezet nélkülinek látszanak.
 - Mindig a **szerver által visszaadott** `content`-et ellenőrizd, ne a saját bemenetedet.
 
+**A leggyakoribb valódi ok nem az `az`, hanem a script kódolása (kritikus).** A PowerShell 5.1 a `.ps1`
+fájlt **BOM nélkül ANSI-ként** olvassa be. Ha a scriptet UTF-8-ban (BOM nélkül) írod ki — márpedig a
+legtöbb szerkesztő és minden `WriteAllText(..., new UTF8Encoding($false))` ezt teszi —, akkor a benne lévő
+magyar szöveg **már a betöltéskor elromlik**, még mielőtt bármit elküldenél. Innentől mindegy, hogyan
+küldöd: `az`-zal vagy `Invoke-RestMethod`-dal, escape-elve vagy sem, a romlott szöveg megy ki.
+
+Ez azért nehéz észrevenni, mert **az `az` visszaolvasás ugyanazzal a hibás dekódolással állítja helyre**,
+amivel elrontotta: a `content` a terminálban hibátlannak látszik, a böngészőben viszont `VĂ©gigfuttattam`.
+
+| Ellenőrzés | Megbízható? |
+|---|---|
+| `az devops invoke ... -o json` visszaolvasás | ❌ öndekódoló hazugság |
+| `Invoke-RestMethod` (PAT-tal, `az` nélkül) | ✅ a tárolt tartalmat adja |
+| böngésző | ✅ |
+
+Recept, ha magyar szöveget küldesz PowerShellből:
+
+1. A `.ps1`-et **UTF-8 BOM-mal** írd ki: `[IO.File]::WriteAllText($p, $t, (New-Object Text.UTF8Encoding $true))`.
+   Ellenőrizd: az első három bájt `EF BB BF`.
+2. A body-t **explicit UTF-8 bájtként** add át: `-Body ([Text.Encoding]::UTF8.GetBytes($json))` és
+   `-ContentType 'application/json; charset=utf-8'`.
+3. A PAT-ot a Windows Credential Managerből olvasd (`azdevops-cli:https://dev.azure.com/<org>` target,
+   `CredRead` P/Invoke-kal), így nem kell külön tokent kérned.
+4. **Az ellenőrzés REST-tel történjen**, ne az `az`-zal.
+
 **Kapcsolódó csapda:** a PowerShellben többször átírt (`ReadAllText`/`WriteAllText`) generált scriptben az ékezetek sérülhetnek (`U+FFFD`), és onnantól a helyes escape-elés is a sérült szöveget escape-eli. Generált scriptet **ne** patch-elj PowerShellből — írd újra, és a futtatás előtt ellenőrizd (`grep`/Python), hogy a fájlban tényleg ott vannak-e az ékezetek.
 
 Két további mutáló művelet, aminél a részletek számítanak:

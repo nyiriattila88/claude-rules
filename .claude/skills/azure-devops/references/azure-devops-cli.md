@@ -303,7 +303,7 @@ Ez ugyanaz a mechanizmus, ami a `WARNING: Unable to encode the output with cp125
 
 Következmények:
 
-- **Kerüld a nem-cp1250 karaktereket** a komment szövegében: `→` helyett `->` vagy szó, nyilak/emoji helyett sima írásjel. Az em dash és a magyar ékezetek mehetnek.
+- **Kerüld a nem-cp1250 karaktereket** a komment szövegében: `→` helyett `->` vagy szó, nyilak/emoji helyett sima írásjel. Az em dash és a magyar ékezetek mehetnek. A leggyakoribb elkövető egy **generált státusz-táblázat**: a `✅` / `⚠️` / `⏹️` jelölők egyike is elég ahhoz, hogy a tábla körüli teljes magyar szöveg ékezet nélkül érkezzen meg.
 - **A thread-létrehozó POST így is sérülhet.** A működő recept: `POST`-tal létrehozni (a tartalom romolhat), majd a valódi szöveget `pullRequestThreadComments` **PATCH**-csel beírni — a PATCH bizonyítottan megőrzi a tartalmat.
 - **Az ellenőrzés csak egyedi thread GET-tel megbízható** (`threadId=<id>`). A thread-**lista** GET-je félrevezet: ha a PR-en van egy *másik* komment emojival (például egy korábbi AI-review pipeline `🤖` bannere), az az egész lista-kimenet nem-ASCII tartalmát megtisztítja, és a saját, helyesen eltárolt kommentjeid is ékezet nélkülinek látszanak.
 - Mindig a **szerver által visszaadott** `content`-et ellenőrizd, ne a saját bemenetedet.
@@ -608,6 +608,51 @@ $raw = az devops invoke 2>$null | Where-Object { $_ -notmatch '^Please wait' }
 $a = ($raw -join "`n") | ConvertFrom-Json
 $a | Where-Object { $_.resourceName -match 'permission' } |
   ForEach-Object { "$($_.area)/$($_.resourceName) released=$($_.releasedVersion) route=$($_.routeTemplate)" }
+```
+
+### A klasszikus release API külön hoston él — írni nem tudod az `invoke`-kal (kritikus)
+
+A klasszikus **release** definíciók (Releases fül, nem a YAML pipeline-ok) nem a `dev.azure.com`, hanem a
+**`vsrm.dev.azure.com`** hoston laknak. Az `az devops invoke` a `dev.azure.com`-ra küld, és ez a
+gyakorlatban aszimmetrikus:
+
+| Művelet | Eredmény |
+|---|---|
+| `--area release --resource definitions` **GET** | ✅ visszaadja a definíciót (a CLI kiszolgálja) |
+| ugyanaz **PUT**-tal | ❌ `ERROR: The command failed with an unexpected error. Here is the traceback:` |
+| `--org https://vsrm.dev.azure.com/<org>` | ❌ `WARNING: The Azure DevOps Extension ... does not support Azure DevOps Server` |
+
+A csapda az, hogy a **GET működik**: könnyű azt hinni, hogy a resource elérhető, és a PUT hibáját a
+body-ra vagy a `revision`-re fogni. Nem az: a hoston bukik el, mielőtt a szerver látná.
+
+Amire ez tipikusan kell — YAML-migrációkor a klasszikus release-ek **Continuous deployment triggerének**
+levétele vagy a definíció letiltása —, ott a `az devops invoke` nem járható út. A megoldás közvetlen REST
+hívás PAT-tal a vsrm hostra:
+
+```powershell
+$h = @{ Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$env:AZURE_DEVOPS_EXT_PAT")) }
+$u = "https://vsrm.dev.azure.com/<org>/<project>/_apis/release/definitions/<id>?api-version=7.1"
+$def = Invoke-RestMethod -Uri $u -Headers $h -Method Get
+$def.triggers = @($def.triggers | Where-Object { $_.triggerType -ne 'artifactSource' })
+Invoke-RestMethod -Uri "https://vsrm.dev.azure.com/<org>/<project>/_apis/release/definitions?api-version=7.1" `
+  -Headers ($h + @{ 'Content-Type' = 'application/json' }) -Method Put -Body ($def | ConvertTo-Json -Depth 40)
+```
+
+A PUT a **teljes** definíciót várja a helyes `revision`-nel — részleges body-val `400`-at kapsz. A PAT-nak
+`Release (read, write, execute, manage)` scope kell; a build-scope nem elég hozzá.
+
+#### ✅ DO
+
+```text
+A release definíciót módosítanám → tudom, hogy vsrm.dev.azure.com kell, és PAT-os REST hívást írok,
+nem az devops invoke-ot.
+```
+
+#### ❌ DON'T
+
+```text
+(A GET működött az invoke-kal, ezért a PUT hibáját a JSON méretére/revision-re fogom, és a body-t
+kezdem el csiszolni — miközben a kérés el sem jut a release szolgáltatásig.)
 ```
 
 ## Token economy

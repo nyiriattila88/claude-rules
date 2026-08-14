@@ -6,6 +6,7 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 
 ## Agent working method
 
+- **2026-08-14 — hook-konfig írását auto módban blokkolja a classifier:** a `~/.claude/settings.json` és minden `hooks` blokkot tartalmazó fájl írása megtagadásra fut (a `.ps1` scriptek írása viszont átmegy). Ne próbáld újra ugyanazt — mondd ki, mit akarsz beírni, és kérj rá engedélyt.
 - **2026-08-14 — a repo `.claude/skills` szerkesztése azonnal globális:** a `~/.claude/skills` junctionként erre a repóra mutat, így egy skill módosítása minden projekt minden új sessionjében azonnal él — nincs „csak lokálisan kipróbálom" állapot, a repo szerkesztése éles hatás.
 
 ## Windows & PowerShell

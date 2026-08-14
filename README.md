@@ -114,7 +114,7 @@ A rule can say "record what you learned"; only a hook makes it happen without be
 - **`session-start-lessons.ps1`** on `SessionStart` — resolves `$env:COMPUTERNAME` and injects `.claude/lessons/workspaces/<machine>.md` into the session context, so the machine-specific half loads with no lookup and no `Read`. `general.md` needs no hook; `CLAUDE.md` imports it eagerly.
 - **`stop-lessons-sweep.ps1`** on `Stop` — once per session, as the turn would end, blocks with a reminder to record anything worth keeping. A per-session marker file in `%TEMP%\claude-lessons-sweep\` makes it fire exactly once, so it cannot loop, and sessions with a transcript under ~30 KB are skipped.
 
-Setup: merge the `hooks` block from [`.claude/hooks/settings.hooks.example.json`](.claude/hooks/settings.hooks.example.json) into `~/.claude/settings.json`, keeping the rest of that file intact, and adjust the absolute script paths to where this repo is cloned. The settings watcher only picks up files that existed at session start, so open `/hooks` once (or restart) to load them the first time.
+Setup: merge the `hooks` block from [`.claude/hooks/settings.hooks.example.json`](.claude/hooks/settings.hooks.example.json) into `~/.claude/settings.json`, keeping the rest of that file intact, and adjust the absolute script paths to where this repo is cloned. A user-scope `settings.json` normally exists already, so the watcher picks the hooks up immediately — verified: the `Stop` hook fired in the very session that wired it. If they stay silent, start a new session.
 
 Both scripts are **UTF-8 with BOM on purpose**: Windows PowerShell 5.1 reads a BOM-less script as ANSI and mangles every accented string. Keep the BOM when editing them.
 

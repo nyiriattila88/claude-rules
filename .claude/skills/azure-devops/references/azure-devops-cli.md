@@ -661,6 +661,53 @@ Az útvonalat írom át ideiglenesen, a revertet fájlba mentem, és a merge ut�
 policy-t kapcsolok ki — miközben csak egy fájlnév nem egyezik a release ágon.)
 ```
 
+## „Vissza van mergelve?" — a commit-számolás félrevezet (kritikus)
+
+Egy release ág visszamergelésének ellenőrzésére a `main`↔`develop` **ahead-száma nem alkalmas**, ha a
+merge-ek `noFastForward`-dal készültek (ez az ADO „Require a merge strategy" policy tipikus beállítása).
+A merge commit maga soha nem lesz a másik ág őse, ezért **szinte minden repo „ahead"-nek látszik** akkor is,
+ha a release tartalma hibátlanul benne van mindkét ágban.
+
+Mérve egy 38 repós projektpáron: a `main` vs `develop` ahead-szám **37 repót** jelölt meg „hiányzó
+back-merge"-ként, miközben a containment-vizsgálat szerint **egy sem** volt hiányos. A hibás metrika alapján
+37 értelmetlen back-merge PR született volna.
+
+A helyes kérdés nem az, hogy *hány commit van az egyik ágon, ami nincs a másikon*, hanem hogy a release ág
+**HEAD commitja benne van-e** a cél ágban. Ezt a `branchStats` adja meg **commit** base-szel: a cél ág
+`behindCount=0` értéke jelenti, hogy tartalmazza.
+
+```powershell
+az devops invoke --area git --resource branchStats `
+  --route-parameters project=<proj> repositoryId=<repo> `
+  --query-parameters baseVersionDescriptor.version=<40-hex-sha> baseVersionDescriptor.versionType=commit `
+  --api-version 7.1 --org <org> --detect false -o json
+```
+
+Két csapda a hívásban:
+
+- A `versionType=commit` **teljes, 40 karakteres SHA**-t vár. Rövidített (8 jegyű) azonosítóra
+  `ERROR: An object ID must be 40 characters long and only have hex digits` a válasz.
+- Ha a release ág **már törölve van** (a PR `completionOptions.deleteSourceBranch=True`), a ref-listából
+  nem tudod ellenőrizni. A commit ilyenkor a PR-ből jön: `lastMergeSourceCommit.commitId`. Ezért a „nincs
+  release branch" válasz **nem** azt jelenti, hogy nem volt release — a mergelt ágak eltűnnek.
+
+Létező ágnál a `branchStats` **branch** base-szel is jó: ha az `aheadCount=0` a `main`-hez és a `develop`-hoz
+is, az ág mindkettőbe be van mergelve, tehát tartalmi veszteség nélkül törölhető.
+
+### ✅ DO
+
+```text
+A release ág HEAD commitját (törölt ágnál a PR lastMergeSourceCommit-jából) containmenttel ellenőrzöm
+main-en és develop-on. behind=0 mindkettőn → tényleg vissza van mergelve.
+```
+
+### ❌ DON'T
+
+```text
+(A main vs develop ahead-számból arra jutok, hogy 37 repóban hiányzik a back-merge, és nyitok 37 PR-t —
+pedig csak a noFastForward merge commitok nem őssei a másik ágnak.)
+```
+
 ## Read-only receptek
 
 Az alábbiak feltételezik a beállított defaultokat; egyébként `--org`/`-p` kell.

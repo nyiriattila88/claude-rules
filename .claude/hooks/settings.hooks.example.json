@@ -1,0 +1,43 @@
+{
+  "_comment": "Merge the hooks block below into ~/.claude/settings.json (user scope, so it applies to every project). Keep the rest of that file intact and adjust the absolute paths to where this repo is cloned. On macOS/Linux replace powershell.exe and its args with the equivalent shell invocation.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\session-start-lessons.ps1"
+            ],
+            "timeout": 15,
+            "statusMessage": "Workspace tanulságok betöltése"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\stop-lessons-sweep.ps1"
+            ],
+            "timeout": 15,
+            "statusMessage": "Tanulság-ellenőrzés"
+          }
+        ]
+      }
+    ]
+  }
+}

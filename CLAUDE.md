@@ -44,10 +44,12 @@ After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`
 @.claude/rules/file-format-preservation.md
 @.claude/rules/documentation-style.md
 @.claude/rules/git-conventions.md
+@.claude/rules/git-identity.md
 @.claude/rules/git-line-endings.md
 @.claude/rules/deployment-path.md
 @.claude/rules/session-naming.md
 @.claude/rules/shell-path-conversion.md
+@.claude/rules/lessons-learned.md
 
 ## What each core rule covers
 
@@ -60,10 +62,23 @@ After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`
 | `file-format-preservation.md` | Preserve file encoding, line endings, indentation during edits. |
 | `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |
 | `git-conventions.md` | Jira `[NX-32472]` commit prefix, `feature/NX-32472_purpose` branch naming, commit message format, no AI-tool markers, push only with permission, small commits, PR description format (English, Why/What/Notes — the merge commit carries it). |
+| `git-identity.md` | **This repo is personal — commit and push with the `nyiriattila88` GitHub account, not the work one.** Repo-local `user.email` overrides the global on purpose; a push 403 means the wrong `gh` account is active (`gh auth switch`), not a missing scope. |
 | `git-line-endings.md` | `.gitattributes` policy and CRLF/LF normalization. |
 | `deployment-path.md` | **On any deployment request, check for a real CI/CD path first** (GitHub Actions workflow / Azure DevOps pipeline) and use it; local `terraform`/`terragrunt`/`tofu apply` is the fallback only when no pipeline exists. A missing credential is not a reason to fall back. Triggering the pipeline needs permission. |
 | `session-naming.md` | Start each session title with the repo/folder name so sessions stay scannable across projects. |
 | `shell-path-conversion.md` | **Git Bash on Windows rewrites `/`-leading CLI arguments into Windows paths — usually silently, returning an empty result set.** Set `MSYS_NO_PATHCONV=1` (or use PowerShell); an unexpectedly empty CLI result is this rule's suspect first, never proof that the resource is gone. |
+| `lessons-learned.md` | How cross-session lessons are collected: `general.md` (eager) vs. `workspaces/<COMPUTERNAME>.md` (read once per session), what belongs in each store vs. session memory vs. a rule, entry format, and promotion into a rule. |
+
+## Cross-session lessons (`.claude/lessons/`)
+
+Because this repo is wired into every local session, it is where a lesson learned once can improve later sessions. The general collection is **eagerly imported**; the machine-specific one is loaded by the `SessionStart` hook in `.claude/hooks/` (or read manually after looking up `$env:COMPUTERNAME`, on a machine where the hooks are not wired). A `Stop` hook asks for a sweep once per session, so recording a lesson does not depend on remembering to. Mechanics, entry format, and the promotion path into a rule: [`lessons-learned.md`](.claude/rules/lessons-learned.md).
+
+@.claude/lessons/general.md
+
+| Path | Scope | Loading |
+|------|-------|---------|
+| `.claude/lessons/general.md` | project- and machine-independent working-method lessons | eager (imported above) |
+| `.claude/lessons/workspaces/<COMPUTERNAME>.md` | one physical machine: paths, installed CLIs, accounts, proxy/VPN, junctions | on demand — `$env:COMPUTERNAME`, then read the file if it exists |
 
 ## Skills (on-demand, `.claude/skills/`)
 

@@ -591,6 +591,76 @@ Fix érték (`branch: develop`) megoldja a nightlyt, de elrontja a release/hotfi
 
 A `${{ }}` compile-time oldódik fel, és **cron-futásban is** működik (mérve). A resource-triggerből indult futást nem érinti: ott a triggerelő build artifactja megy.
 
+## Build validation policy — a YAML-útvonal csapda (kritikus)
+
+Ha egy PR-en a **validáció el sem indul** — a policy `queued` állapotban áll, de **nincs mögötte build** —,
+az nem policy-hiba. A policy-pipeline a YAML fájlját azon a tartalmon keresi, amit a PR merge-commitja ad,
+és ha a fájl neve közben megváltozott (YAML-migráció, átnevezés egy feature branchen), akkor a **régi
+ágakon** — jellemzően a release/hotfix ágakon — a definition által keresett útvonal nem létezik. A build
+ilyenkor csendben nem jön létre.
+
+A diagnózis sorrendje, mielőtt a policy-hoz vagy a repo tartalmához hozzányúlnál:
+
+| Lépés | Mit mond |
+|---|---|
+| `az repos pr policy list --id <pr>` | van-e `Build` evaluation, és `queued`-e **buildId nélkül** |
+| `az pipelines show --id <defId>` → `process.yamlFilename` | melyik útvonalat keresi a definition |
+| `git/items` a PR **source ágán** (`scopePath=/.azure-pipelines`) | létezik-e ott egyáltalán az a fájl |
+
+A `queued` + hiányzó `buildId` + a source ágon nem létező fájl együtt bizonyítja az útvonal-eltérést.
+
+### A javítás a definition útvonala, nem a repo tartalma
+
+A release ág tartalmához nem kell hozzányúlni (egy release lezárásakor nem is szabad). A definition
+útvonala **célzott paraméterrel** átírható, tehát nem kell full-definition PUT — a fentebbi
+`ConvertTo-Json`-csapda így nem is játszik:
+
+```bash
+az pipelines update --id <defId> --project <proj> --yaml-path ".azure-pipelines/<a-source-agon-letezo>.yml"
+```
+
+Ez **temporary change** (lásd *Koncepció-validálás temporary change-dzsel*): jelöld, vezess listát, és a
+merge után állítsd vissza. A revert parancsokat **fájlba** írd ki, ne csak a kontextusban tartsd — ha a
+session megszakad, a pipeline-ok idegen útvonalon maradnak. Repónként külön értéket kell nézni: ugyanannak
+a migrációnak a régi neve lehet `build_validation.yml` az egyik és `<repo>-build-validation.yml` a másik
+repóban.
+
+A queue-t a policy nem indítja újra magától; a build az evaluation-ön keresztül kérhető:
+
+```bash
+az repos pr policy queue --id <prId> --evaluation-id <evalId>
+```
+
+A visszakapott `buildId` a bizonyíték, hogy valóban az útvonal volt a hiba: előtte nem volt build, utána van.
+
+### A nem blokkoló policy nem korlátoz — az `isBlocking` dönt, nem a komment
+
+Egy PR-en megjelenő piros „Failed Quality Gate" komment (SonarQube és társai) **önmagában nem kapu**. Hogy
+mi akadályozza a merge-t, az evaluation-lista `isBlocking` mezője mondja meg:
+
+```powershell
+$p = az repos pr policy list --id <pr> -o json | ConvertFrom-Json
+$p | ForEach-Object { "{0} blocking={1} status={2}" -f $_.configuration.type.displayName, $_.configuration.isBlocking, $_.status }
+```
+
+Ha a `Status` policy `isBlocking=False`, a bot kommentje tájékoztatás, és a PR mergelhető — a bizonyíték
+maga a megtörtént merge. **Ilyenkor nincs mit „javítani": egy nem blokkoló gate kikapcsolása valódi
+kontrollt gyengítene ok nélkül.**
+
+### ✅ DO
+
+```text
+A validáció nem indul → a definition yamlFilename-jét és a source ágon a fájl létezését nézem meg.
+Az útvonalat írom át ideiglenesen, a revertet fájlba mentem, és a merge után visszaállítom.
+```
+
+### ❌ DON'T
+
+```text
+(A „nem indul el a validáció"-ból arra jutok, hogy a policy vagy a quality gate a hibás, és blokkoló
+policy-t kapcsolok ki — miközben csak egy fájlnév nem egyezik a release ágon.)
+```
+
 ## Read-only receptek
 
 Az alábbiak feltételezik a beállított defaultokat; egyébként `--org`/`-p` kell.

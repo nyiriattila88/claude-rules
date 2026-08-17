@@ -388,6 +388,69 @@ vagy csak az utolsó futás eredményét nézzem meg?
 indítom a pipeline-t, hogy friss adat legyen.)
 ```
 
+### PR létrehozása és szerkesztése CLI-ből — négy csendes csapda
+
+Mind a négy sikeres kimenetet ad, és mégis mást csinál, mint amit kértél. Mérve az `azure-devops` extensionnel egy hat-repós PR-sorozaton.
+
+**1. Az `az repos pr create --repository` a beállított *default* projectben oldja fel a repót — a `--project`-et figyelmen kívül hagyja.** A hibája jogosultságinak látszik, pedig projekt-feloldás:
+
+```
+ERROR: TF401019: The Git repository with name or identifier Player does not exist
+or you do not have permissions for the operation you are attempting.
+```
+
+A repó **GUID-ja sem** segít (azt is a default projectben keresi), miközben az `az repos show --repository Player -p Frontend` ugyanarra a névre azonnal válaszol — ez a legjobb jelzés, hogy nem jogosultsági gondról van szó. A működő megoldás a default temporary átállítása, kötelező visszaírással:
+
+```powershell
+az devops configure -d project=Frontend
+# ... a Frontend-projekt PR-jainak letrehozasa ...
+az devops configure -d project=Backend    # kotelezo revert
+```
+
+**2. A `--description` soronkénti argumentumot vár, nem többsoros stringet.** Here-stringgel csak az **első sor** megy fel — mérve 2200 karakterből 121, és a hívás sikeresnek látszik. Az **üres** argumentumokat ráadásul eldobja, így a markdown bekezdés-határai eltűnnek, és a `## Why` / `## What` szakaszok egy blokkba olvadnak. A sorokat tömbként kell átadni, üres sor helyén egyetlen szóközzel:
+
+```powershell
+$arr = (($desc -replace "`r`n","`n") -split "`n") | ForEach-Object { if ($_ -eq '') { ' ' } else { $_ } }
+az repos pr update --id 5713 --description $arr --org … --detect false
+```
+
+**3. A `--required-reviewers` a `create`-nél csendben nem érvényesül**, az `az repos pr reviewer add` pedig csak *optional* reviewert csinál. Amit a `reviewers` listában „required"-ként látsz, az jellemzően a policy által felvett csoport, nem az általad megadott ember. Az `isRequired: true` csak REST-tel állítható:
+
+```bash
+az devops invoke --area git --resource pullRequestReviewers \
+  --route-parameters project=<p> repositoryId=<guid> pullRequestId=<id> reviewerId=<reviewerId> \
+  --http-method PUT --in-file body.json --media-type application/json --api-version 7.1
+```
+
+A body-ban az `id` **kötelező** (`{"id":"<reviewerId>","isRequired":true,"vote":0}`), és a `reviewerId` az **ADO-belső** id: az `az devops user list` `originId`-je (AAD object id) `Invalid argument value. Parameter name: A valid reviewer must be supplied.` hibát ad. A helyes id-t maga a PR adja — előbb `reviewer add`, majd `az repos pr show --id <pr>` → `reviewers[].id`.
+
+**4. A build tagjeit nem a `tags` resource adja.** Az `--area build --resource tags --route-parameters buildId=<id>` a `buildId`-t nem illeszti a route-ba, ezért a **projekt összes** build-tagjét listázza: egy Player-deploy futásra a Console/Editor/Recorder tagjeit is. Egy tag-alapú trigger-szűrő helyességét ezzel „ellenőrizni" hamis eredményt ad. A futás saját tagjei: `az pipelines runs show --id <id>` → `.tags`.
+
+#### ✅ DO
+
+```powershell
+# a reviewer ADO-belso id-jat a PR-bol olvasom ki, nem a user list originId-jebol
+$z = (az repos pr show --id 5713 -o json | ConvertFrom-Json).reviewers |
+       Where-Object { $_.uniqueName -eq 'valaki@nexius.hu' }
+```
+
+```powershell
+# egy futas sajat tagjei — ez donti el, mire szur egy tag-alapu trigger
+(az pipelines runs show --id 53163 -p Frontend -o json | ConvertFrom-Json).tags
+```
+
+#### ❌ DON'T
+
+```text
+(A TF401019-et jogosultsagi hibanak olvasom, es a repo GUID-jara valtok — ugyanaz a hiba jon,
+mert a pr create a --project-et eleve figyelmen kivul hagyja.)
+```
+
+```text
+(A leiras felment, a hivas sikeres volt, tehat kesz — pedig csak az elso sor ment fel,
+es a tobbi 2000 karakter csendben elveszett.)
+```
+
 ## Resource authorization — új pipeline semmit nem örököl
 
 Egy **frissen létrehozott** pipeline (és az is, amit egy `az pipelines update` átír) egyetlen protected resource-hoz sem kap jogot automatikusan: sem agent poolhoz, sem ADO Environmenthez. Ez akkor is így van, ha a repo társ-pipeline-jai (ugyanaz a pool, ugyanaz a YAML-template) rendben futnak — a jog **pipeline-onként** áll.

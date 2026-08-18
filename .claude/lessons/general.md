@@ -1,4 +1,4 @@
-# Lessons: general (project- and machine-independent)
+﻿# Lessons: general (project- and machine-independent)
 
 Cross-session lessons that hold in **every** project on **every** machine. Mechanics, where an entry belongs, when to write one, the format, and when to promote it into a rule, are in [[lessons-learned]].
 
@@ -9,6 +9,8 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-08-14, hook-konfig írását auto módban blokkolja a classifier:** a `~/.claude/settings.json` és minden `hooks` blokkot tartalmazó fájl írása megtagadásra fut (a `.ps1` scriptek írása viszont átmegy). Ne próbáld újra ugyanazt, mondd ki, mit akarsz beírni, és kérj rá engedélyt.
 - **2026-08-14, a repo `.claude/skills` szerkesztése azonnal globális:** a `~/.claude/skills` junctionként erre a repóra mutat, így egy skill módosítása minden projekt minden új sessionjében azonnal él, nincs „csak lokálisan kipróbálom" állapot, a repo szerkesztése éles hatás.
 - **2026-08-17, fájl végére illesztő regex tömeges cserénél:** a `<[^>]*$` mintám markdownban a `<25`-be kapott bele, és a fájl felét levágta (a találatszám ettől még „sikeres" volt). Csere után a fájlméretet és a farkat ellenőrizd, ne a match-számot.
+- **2026-08-18: Python `utf-8-sig` íráskor BOM-ot tesz a fájlra.** Olvasásnál helyes (levágja a BOM-ot), de visszaíráskor **hozzáadja** akkor is, ha eredetileg nem volt ott. Egy `SKILL.md` frontmatterét ez csendben eltöri: a `---` elé kerül a BOM, a YAML nem parse-ol, és a skill leírása üresen marad. Bájt-szinten őrizd meg az eredetit, vagy írj `utf-8`-cal.
+- **2026-08-18: karakter-keresés Git Bashben.** A `grep $'—'` nem bővül ki, üres mintát keres, és **tiszta fájlt jelent** ott is, ahol száz találat van. Unicode karakterre `rg` a literális jellel, vagy `grep -P` a UTF-8 bájtokkal (`â`).
 
 ## Windows & PowerShell
 

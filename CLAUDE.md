@@ -1,4 +1,4 @@
-# Claude Rules — Project Memory
+﻿# Claude Rules — Project Memory
 
 This file is the entry point for Claude Code when this repository (or a symlinked copy of it) is loaded.
 
@@ -60,7 +60,7 @@ After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`
 | `token-economy.md` | **Critical:** minimize token consumption; trade speed (not quality) for fewer tokens; **fan-out / multiple parallel agents need explicit permission (even under ultracode) — one `+1` parallel agent is allowed sparingly to save time.** |
 | `communication-language.md` | Reply in Hungarian by default (incl. visible reasoning/process text); mirror the user's language; keep technical terms untranslated. |
 | `file-format-preservation.md` | Preserve file encoding, line endings, indentation during edits. |
-| `documentation-style.md` | XML doc / inline comment / Terraform comment limits — terse, "why not what". |
+| `documentation-style.md` | **No em dash and no semicolon in prose**, both read as AI-written. In code the `;` is syntax and stays, never bulk-replace it. XML doc / inline comment / Terraform comment limits, terse, "why not what". |
 | `git-conventions.md` | Jira `[NX-32472]` commit prefix, `feature/NX-32472_purpose` branch naming, commit message format, no AI-tool markers, push only with permission, small commits, PR description format (English, Why/What/Notes — the merge commit carries it). |
 | `git-identity.md` | **This repo is personal — commit and push with the `nyiriattila88` GitHub account, not the work one.** Repo-local `user.email` overrides the global on purpose; a push 403 means the wrong `gh` account is active (`gh auth switch`), not a missing scope. |
 | `git-line-endings.md` | `.gitattributes` policy and CRLF/LF normalization. |

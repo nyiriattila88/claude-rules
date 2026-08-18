@@ -1,20 +1,95 @@
----
-description: Documentation style — terse summaries, "why not what", no comment essays.
+﻿---
+description: Documentation style, terse summaries, "why not what", no comment essays.
 globs: "**/*"
 alwaysApply: false
 ---
 
 # Documentation Style
 
-Documentation explains the **why**, not the **what**. The "what" comes from well-named types, methods, fields, attributes, and resource names. Comments are allowed — but keep them **terse**: aim for one line, three lines maximum. If a comment merely restates the identifier or the next line of code, drop it.
+Documentation explains the **why**, not the **what**. The "what" comes from well-named types, methods, fields, attributes, and resource names. Comments are allowed, but keep them **terse**: aim for one line, three lines maximum. If a comment merely restates the identifier or the next line of code, drop it.
 
-Keep summary **content** terse — **a single sentence by default**. The XML doc **block** is always written **multi-line**: opening `<summary>` tag on its own line, content on its own line, closing `</summary>` tag on its own line. The same rule applies to `<remarks>`. This is the physical layout; the brevity limits (one sentence by default) still hold for the content. `<remarks>` are reserved for **non-obvious** information: an invariant, a gotcha, a wire-format decision, a workaround for a specific bug, behavior that would surprise a reader.
+Keep summary **content** terse, **a single sentence by default**. The XML doc **block** is always written **multi-line**: opening `<summary>` tag on its own line, content on its own line, closing `</summary>` tag on its own line. The same rule applies to `<remarks>`. This is the physical layout; the brevity limits (one sentence by default) still hold for the content. `<remarks>` are reserved for **non-obvious** information: an invariant, a gotcha, a wire-format decision, a workaround for a specific bug, behavior that would surprise a reader.
 
 Documentation is not a place to record history (migrations, decisions considered, alternatives rejected). That belongs in commit messages, PRs, ADRs, or runbooks.
 
-## Technical terms — don't translate
+## Two characters that read as AI-written: `—` and `;`
 
-Keep established technical/industry terms in their canonical form (usually English); **do not** translate them into the prose language. This applies everywhere you write — chat responses, inline comments, XML docs, and Terraform comments alike. A forced translation is harder to recognise, breaks searchability, and reads worse than the term everyone already uses.
+**Never use an em dash (`—`) in prose, and avoid the semicolon (`;`) in prose.** These two are the
+clearest giveaways that a text was generated rather than written, and a document carrying them is read
+differently by the people who receive it, regardless of how good its content is.
+
+This applies to **everything a human reads**: chat replies, documentation, README files, code comments,
+XML docs, HCL `description` attributes, commit messages, PR descriptions, and review comments alike.
+
+### What to write instead
+
+| Instead of | Write |
+|---|---|
+| `A megoldás — bár működik — lassú.` | `A megoldás, bár működik, lassú.` |
+| `Két lehetőség van — az egyik olcsóbb.` | `Két lehetőség van: az egyik olcsóbb.` |
+| `A render lefut; a videó S3-ba kerül.` | `A render lefut, a videó S3-ba kerül.` |
+| `Nem a méret számít; a tartalom.` | `Nem a méret számít. A tartalom.` |
+
+A comma, a colon, a pair of brackets, or simply two sentences: one of these always fits. If none of them
+does, the sentence is trying to carry two thoughts at once, and splitting it is the real fix.
+
+### Code is exempt, and this matters
+
+The semicolon is **syntax** in C#, TypeScript, JavaScript, Java, and their relatives. Removing it breaks
+the build.
+
+**Never run a bulk replacement of `;` over source files.** The rule is about prose, which inside a code
+file means comments, XML docs, and string literals that a human will read. Statement terminators,
+`for (int i = 0; i < n; i++)`, and CSS declarations stay exactly as they are.
+
+The em dash has no such exemption: it is never syntax, so it can be replaced anywhere it appears.
+
+### ✅ DO
+
+```csharp
+/// <summary>
+/// Serves rendered output through this API instead of redirecting to the CDN.
+/// </summary>
+public sealed class RenderContentProxy(IHttpClientFactory httpClientFactory)
+{
+    public void Copy(int count)
+    {
+        for (int index = 0; index < count; index++)   // syntax, leave it alone
+        {
+            // A CDN a Range fejlécet mindkét irányba továbbadja, így a lejátszóban lehet tekerni.
+        }
+    }
+}
+```
+
+### ❌ DON'T
+
+```csharp
+/// <summary>
+/// Serves rendered output through this API — instead of redirecting to the CDN.
+/// </summary>
+// A CDN a Range fejlécet továbbadja; így a lejátszóban lehet tekerni.
+```
+
+```text
+(Tömeges csere a forráson, ami a statement-lezáró pontosvesszőket is elviszi: a build elhasal.)
+sed -i 's/;//g' src/**/*.cs
+```
+
+### Verifying it
+
+An em dash is invisible in a diff and easy to miss by eye, so check it with a tool, and know that some
+shells lie about it: in Git Bash `grep $','` silently expands to nothing and reports a clean file.
+Use ripgrep with the literal character, or match the UTF-8 bytes:
+
+```bash
+rg -l '—' docs/ src/
+grep -rlP "\xe2\x80\x94" docs/ src/
+```
+
+## Technical terms: don't translate
+
+Keep established technical/industry terms in their canonical form (usually English); **do not** translate them into the prose language. This applies everywhere you write, chat responses, inline comments, XML docs, and Terraform comments alike. A forced translation is harder to recognise, breaks searchability, and reads worse than the term everyone already uses.
 
 ### ✅ DO
 
@@ -36,9 +111,9 @@ Az első hívásnál a hidegindítás lassítja a Lambdát; a kiépített konkur
 // Bemelegítő pingelés a hidegindítás elkerülésére az első kérés előtt.
 ```
 
-### Code identifiers and names — never translate
+### Code identifiers and names: never translate
 
-The same rule applies — even more strictly — to **code identifiers and names**: variable, field, property, parameter, method, type, `local`, Terraform `resource`/`variable`/`output`, attribute, SSM/parameter, and tag names. When you mention one in prose, a comment, an XML doc, or a `description`, **write it verbatim in its canonical (code) form** — do not Hungarianise it. A translated name no longer matches the code, breaks grep/search, and reads as noise. This includes "describing" a name in Hungarian: refer to `service_name`, not "Szolgáltatásnév".
+The same rule applies, even more strictly, to **code identifiers and names**: variable, field, property, parameter, method, type, `local`, Terraform `resource`/`variable`/`output`, attribute, SSM/parameter, and tag names. When you mention one in prose, a comment, an XML doc, or a `description`, **write it verbatim in its canonical (code) form**, do not Hungarianise it. A translated name no longer matches the code, breaks grep/search, and reads as noise. This includes "describing" a name in Hungarian: refer to `service_name`, not "Szolgáltatásnév".
 
 #### ✅ DO
 
@@ -82,7 +157,7 @@ resource "aws_ssm_parameter" "component_name" {
 | `[SuppressMessage]` justification | 1 line | 1 line |
 | Per-resource HCL comment | 1 line | 3 lines (only when non-obvious) |
 
-If a block exceeds the hard limit, the content belongs in a commit message, a sibling ADR, or a runbook — not in the source file.
+If a block exceeds the hard limit, the content belongs in a commit message, a sibling ADR, or a runbook, not in the source file.
 
 ## Comments on `using` directives
 
@@ -106,9 +181,9 @@ using AuthorizeAttribute = Microsoft.AspNetCore.Authorization.AuthorizeAttribute
 
 ## C# XML doc
 
-### Block layout — opening and closing tags on their own lines
+### Block layout: opening and closing tags on their own lines
 
-The XML doc **block** is always multi-line: `<summary>`, `<remarks>`, `<param>`, `<returns>` and friends each get their opening tag, content, and closing tag on separate `///` lines. This is purely about physical layout and is independent of how short the content is — even a one-word summary uses three `///` lines. Block elements never inline their content into the same line as the tags.
+The XML doc **block** is always multi-line: `<summary>`, `<remarks>`, `<param>`, `<returns>` and friends each get their opening tag, content, and closing tag on separate `///` lines. This is purely about physical layout and is independent of how short the content is, even a one-word summary uses three `///` lines. Block elements never inline their content into the same line as the tags.
 
 ### ✅ DO
 
@@ -127,12 +202,12 @@ public OrderDirection OrderDirection { get; init; } = OrderDirection.Descending;
 ### ❌ DON'T
 
 ```csharp
-// Tags and content collapsed onto one line — harder to scan, breaks the consistent block shape.
+// Tags and content collapsed onto one line, harder to scan, breaks the consistent block shape.
 /// <summary>Source-media location filter; null means no filter.</summary>
 public AmazonS3Uri? SourceUrl { get; init; }
 ```
 
-### Property summaries — single sentence (in a multi-line block)
+### Property summaries: single sentence (in a multi-line block)
 
 Brevity is about **content** (one sentence by default), not physical lines. Even with the multi-line block form, the summary text stays terse.
 
@@ -159,7 +234,7 @@ public AmazonS3Uri? SourceUrl { get; init; }
 
 The implementation detail (the API layer's parsing) belongs in the parser's own doc or its tests, not on the filter property.
 
-### `<remarks>` — only when warranted
+### `<remarks>`: only when warranted
 
 ### ✅ DO
 
@@ -168,7 +243,7 @@ The implementation detail (the API layer's parsing) belongs in the parser's own 
 /// Aggregate-status filter; empty means no filter.
 /// </summary>
 /// <remarks>
-/// Computed on every read — the value is never persisted.
+/// Computed on every read, the value is never persisted.
 /// </remarks>
 public IReadOnlyList<JobStatus> Statuses { get; init; } = [];
 ```
@@ -189,7 +264,7 @@ public IReadOnlyList<JobStatus> Statuses { get; init; } = [];
 
 The pipeline description belongs in the type's own doc, not on every filter that touches it.
 
-### `[SuppressMessage]` justifications — one line
+### `[SuppressMessage]` justifications: one line
 
 ### ✅ DO
 
@@ -209,7 +284,7 @@ The pipeline description belongs in the type's own doc, not on every filter that
 
 ## Terraform / Terragrunt
 
-### File-header comments — at most 3 lines (1 line preferred)
+### File-header comments: at most 3 lines (1 line preferred)
 
 The filename (`iam.tf`, `dynamodb.tf`) already says what the file is about. The header records the **one non-obvious thing** about the file, not its full design rationale.
 
@@ -240,14 +315,14 @@ resource "aws_dynamodb_table" "dubbing_jobs" {
 
 That history belongs in a commit message or a `docs/dubbing-jobs.md`, not at the top of `dynamodb.tf`.
 
-### Banner dividers (`# ===============…`) — avoid
+### Banner dividers (`# ===============…`): avoid
 
 Multi-line banner blocks tempt people to fill them with prose. Use a single short line.
 
 ### ✅ DO
 
 ```hcl
-# Infrastructure alarms — ALB unhealthy-host (page), ECS memory + DynamoDB (diagnostic).
+# Infrastructure alarms, ALB unhealthy-host (page), ECS memory + DynamoDB (diagnostic).
 resource "aws_cloudwatch_metric_alarm" "alb" {
 ```
 
@@ -263,7 +338,7 @@ resource "aws_cloudwatch_metric_alarm" "alb" {
 resource "aws_cloudwatch_metric_alarm" "alb" {
 ```
 
-### Per-resource comments — only when the AWS / provider behaviour is non-obvious
+### Per-resource comments: only when the AWS / provider behaviour is non-obvious
 
 ### ✅ DO
 
@@ -310,9 +385,9 @@ resource "aws_dynamodb_table" "dubbing_jobs" {
 
 The attribute names already say all of that.
 
-### `description = "..."` attributes — one sentence, no architecture flow
+### `description = "..."` attributes: one sentence, no architecture flow
 
-The `description` field on `variable`, `resource`, `output`, and `data` blocks is **not** a comment — it renders in `terraform-docs`, IDE tooltips, and exported AWS resource descriptions (e.g. an `aws_ssm_parameter` description shows up in the SSM console). Multi-sentence, prose-heavy descriptions look out of place there. Default: **one short sentence**.
+The `description` field on `variable`, `resource`, `output`, and `data` blocks is **not** a comment, it renders in `terraform-docs`, IDE tooltips, and exported AWS resource descriptions (e.g. an `aws_ssm_parameter` description shows up in the SSM console). Multi-sentence, prose-heavy descriptions look out of place there. Default: **one short sentence**.
 
 ### ✅ DO
 
@@ -345,13 +420,13 @@ The architecture flow (root → inputs → variable) belongs in the file-header 
 
 - **What a method does, when its name already says it.** A `<summary>` block whose content is just `Returns the user.` on a `Task<User> GetUserAsync()` adds nothing the signature did not already say.
 - **References to current callers** ("used by X", "called from Y"). Callers move; the comment goes stale silently.
-- **Migration / refactor history.** "We used to do X but now we do Y because…" — that's a commit message.
-- **Alternatives considered.** "We could have used Kafka here but…" — that's an ADR.
+- **Migration / refactor history.** "We used to do X but now we do Y because…", that's a commit message.
+- **Alternatives considered.** "We could have used Kafka here but…", that's an ADR.
 - **TODOs without an owner or ticket.** A bare `// TODO: clean this up` rots forever. Either fix it now, or open a ticket and reference it.
 - **JSON property order / wire shape recitals** when the `[JsonPropertyOrder]` attributes already encode them.
 - **Decoration banner blocks** with multi-paragraph descriptions inside.
 
-## When in doubt — pull, don't add
+## When in doubt: pull, don't add
 
 When a comment block grows past the hard limit, the right move is to **delete** it, not to find a clever way to keep it. If the lost information matters, it goes into:
 

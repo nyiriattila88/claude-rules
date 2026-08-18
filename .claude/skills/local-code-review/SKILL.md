@@ -14,13 +14,13 @@ description: >
 
 # Lokális code review
 
-A részletes szabály a `references/local-code-review.md`-ben van. **Olvasd be a `Read` tool-lal**, amikor kifejezetten kiegyensúlyozott/enyhe review-t kérnek. Az **alapértelmezett** review technika a [[devils-advocate-review]] — ez a skill a nem-adverzális opt-in mód, és egyben a devil's advocate közös mechanika-forrása.
+A részletes szabály a `references/local-code-review.md`-ben van. **Olvasd be a `Read` tool-lal**, amikor kifejezetten kiegyensúlyozott/enyhe review-t kérnek. Az **alapértelmezett** review technika a [[devils-advocate-review]], ez a skill a nem-adverzális opt-in mód, és egyben a devil's advocate közös mechanika-forrása.
 
 ## A lényeg (mielőtt belekezdesz)
 
-- **Mit review-elsz:** a **jelenleg checked-out lokális feature branchet** a base-hez képest — `git merge-base <base> HEAD`, majd `git diff <merge-base>...HEAD` (a branch commitjai) + `git diff HEAD` (uncommitted munka). Ne válts branchet.
+- **Mit review-elsz:** a **jelenleg checked-out lokális feature branchet** a base-hez képest, `git merge-base <base> HEAD`, majd `git diff <merge-base>...HEAD` (a branch commitjai) + `git diff HEAD` (uncommitted munka). Ne válts branchet.
 - **Két kötelező kimenet:**
-  1. **Inline kommentek a kódon** — minden észrevétel, amit a PR-re írnál, `// REVIEW(blocker|fontos|nit): …` kommentként az érintett sorra a working-tree fájlban (a fájl nyelvének megfelelő komment-szintaxissal). Látszik a `git diff`-ben, könnyen visszavonható. A **hangnem udvarias, kérés-formájú** ("Update-eld kérlek a mezőt"), de a tartalom konkrét és súlyozott marad. Csupa nagybetűs (kiabáló) prózát ne írj.
-  2. **Console-összefoglaló** — magyar, tömör szöveges összegzés a chatbe: egysoros verdikt + darabszámok, majd findingonként kattintható `path:sor`, ugyanazzal a súlyozással.
-- **Soha:** `git push`, `git commit`, PR-létrehozás, remote komment API / MCP a remote-ra. Lásd [[git-conventions]] — ez szigorúbb: a review-kimenet sosem commitolt/pusholt.
+  1. **Inline kommentek a kódon**, minden észrevétel, amit a PR-re írnál, `// REVIEW(blocker|fontos|nit): …` kommentként az érintett sorra a working-tree fájlban (a fájl nyelvének megfelelő komment-szintaxissal). Látszik a `git diff`-ben, könnyen visszavonható. A **hangnem udvarias, kérés-formájú** ("Update-eld kérlek a mezőt"), de a tartalom konkrét és súlyozott marad. Csupa nagybetűs (kiabáló) prózát ne írj.
+  2. **Console-összefoglaló**, magyar, tömör szöveges összegzés a chatbe: egysoros verdikt + darabszámok, majd findingonként kattintható `path:sor`, ugyanazzal a súlyozással.
+- **Soha:** `git push`, `git commit`, PR-létrehozás, remote komment API / MCP a remote-ra. Lásd [[git-conventions]], ez szigorúbb: a review-kimenet sosem commitolt/pusholt.
 - Szakkifejezések angolul maradnak (`race condition`, `nullable`, `cancellation token`).

@@ -1,18 +1,18 @@
 # Communication language
 
-All output the user sees must be in **Hungarian by default** — not only the final answer, but every visible byproduct of the work too: the running narration, plans, status updates, summaries, tool-call descriptions, and the **reasoning / thinking that is surfaced to the user**. If the user can read it, it is Hungarian.
+All output the user sees must be in **Hungarian by default**, not only the final answer, but every visible byproduct of the work too: the running narration, plans, status updates, summaries, tool-call descriptions, and the **reasoning / thinking that is surfaced to the user**. If the user can read it, it is Hungarian.
 
-The only exception is language **mirroring**: if the user writes in English (or another language), switch to that language for the whole turn — reasoning included. Default back to Hungarian when the user does.
+The only exception is language **mirroring**: if the user writes in English (or another language), switch to that language for the whole turn, reasoning included. Default back to Hungarian when the user does.
 
 ## Scope
 
-- **Chat prose** — answers, explanations, questions back to the user.
-- **Visible reasoning / thinking** — any "gondolkodás", intermediate steps, or partial results rendered to the user must be Hungarian, not English.
-- **Process text** — plans, progress narration, step summaries, tool-action descriptions, todo items.
+- **Chat prose**, answers, explanations, questions back to the user.
+- **Visible reasoning / thinking**, any "gondolkodás", intermediate steps, or partial results rendered to the user must be Hungarian, not English.
+- **Process text**, plans, progress narration, step summaries, tool-action descriptions, todo items.
 
 ## Technical terms stay canonical
 
-Writing in Hungarian does **not** mean translating technical/industry terms. Keep them in their canonical (usually English) form everywhere — chat, reasoning, summaries alike. See [[documentation-style]] (technical terms — don't translate).
+Writing in Hungarian does **not** mean translating technical/industry terms. Keep them in their canonical (usually English) form everywhere, chat, reasoning, summaries alike. See [[documentation-style]] (technical terms, don't translate).
 
 ## ✅ DO
 

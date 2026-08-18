@@ -12,7 +12,7 @@ description: >
 
 # .NET / C# szabályok
 
-Ez a skill a részletes .NET szabályokat a `references/` alatt tárolja. **Ne dolgozz emlékezetből** — mielőtt a témába vágó kódot írsz vagy fájlt szerkesztesz, olvasd be a `Read` tool-lal a vonatkozó reference fájl(oka)t. Csak azt töltsd be, ami a feladathoz kell (token economy).
+Ez a skill a részletes .NET szabályokat a `references/` alatt tárolja. **Ne dolgozz emlékezetből**, mielőtt a témába vágó kódot írsz vagy fájlt szerkesztesz, olvasd be a `Read` tool-lal a vonatkozó reference fájl(oka)t. Csak azt töltsd be, ami a feladathoz kell (token economy).
 
 ## Melyik fájlt mikor
 

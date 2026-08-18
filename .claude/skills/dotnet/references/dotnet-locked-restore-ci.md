@@ -24,7 +24,7 @@ Why:
 
 ## No new warnings on restore or Release build
 
-- **Goal:** CI (and release checks) must **not allow new warnings** during **restore** or **Release** compile—treat them as failures, not noise.
+- **Goal:** CI (and release checks) must **not allow new warnings** during **restore** or **Release** compile,treat them as failures, not noise.
 - **Restore:** Use **`dotnet restore --locked-mode -c Release`** when **`TreatWarningsAsErrors`** is enabled for Release in `Directory.Build.props` (see `dotnet-project-file-format.md`). Alternatively, force once: `dotnet restore --locked-mode /p:TreatWarningsAsErrors=true` if you cannot pass `-c Release`.
 - **Build/test:** Keep **`dotnet build -c Release`** and **`dotnet test -c Release`** so compiler/analyzer warnings fail the pipeline.
 - **Local parity:** Before push, run the same three steps locally so restore + Release build match CI.

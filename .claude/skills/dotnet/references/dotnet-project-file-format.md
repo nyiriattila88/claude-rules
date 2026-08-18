@@ -23,11 +23,11 @@ Other item types (e.g. `None`, `Content`, `InternalsVisibleTo`) may be in their 
 
 ## TreatWarningsAsErrors
 
-### New greenfield projects — starting with `true` is often worth it
+### New greenfield projects: starting with `true` is often worth it
 
 For **brand-new solutions** with little or no code yet:
 
-- **Do consider** `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` **unconditionally** (all configurations) in root **`Directory.Build.props`**: zero legacy warning debt, every new warning breaks the build immediately, **Debug matches CI**—no surprise failures only on Release.
+- **Do consider** `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` **unconditionally** (all configurations) in root **`Directory.Build.props`**: zero legacy warning debt, every new warning breaks the build immediately, **Debug matches CI**,no surprise failures only on Release.
 - **Trade-off:** local Debug is as strict as Release; some teams later relax to **Release-only** (below) if third-party noise or rapid prototyping friction grows.
 - Keep exceptions rare and explicit via **`WarningsNotAsErrors`** (and comment or doc why).
 
@@ -43,7 +43,7 @@ Root `Directory.Build.props` (greenfield, strict):
 </Project>
 ```
 
-### Default for most repos — Release only
+### Default for most repos: Release only
 
 Set **`TreatWarningsAsErrors`** only when **`Configuration` is `Release`**, so CI and publish builds fail on warnings while local **Debug** stays more permissive. Prefer this once a codebase or team is larger, or when migrating brownfield code.
 
@@ -82,7 +82,7 @@ Single project (only if not inherited from `Directory.Build.props`):
 ### ❌ DON'T
 
 - Rely on **Debug-only** local builds to prove the solution is clean when CI uses **Release-only** TWAE: Release will turn warnings into **errors** and can fail CI/pack.
-- Duplicate the same `TreatWarningsAsErrors` block in **many** `.csproj` files—keep it in **`Directory.Build.props`** once (whether unconditional greenfield or Release-only).
+- Duplicate the same `TreatWarningsAsErrors` block in **many** `.csproj` files,keep it in **`Directory.Build.props`** once (whether unconditional greenfield or Release-only).
 
 ## ✅ DO
 

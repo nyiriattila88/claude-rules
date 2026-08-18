@@ -187,10 +187,10 @@ Object initializers:
       request.Lines = orderLines;
       request.Notes = optionalNotes;
       ```
-  - **When records / primary constructors fit:** positional `record` or primary-constructor types stay idiomatic with `new Foo(a, b)`; object initializers apply when you are configuring a mutable/options/DTO type with many members. Required invariants that must run in a constructor are an exception—use the constructor (or factory) and then initializer only for optional surface if the API allows.
+  - **When records / primary constructors fit:** positional `record` or primary-constructor types stay idiomatic with `new Foo(a, b)`; object initializers apply when you are configuring a mutable/options/DTO type with many members. Required invariants that must run in a constructor are an exception,use the constructor (or factory) and then initializer only for optional surface if the API allows.
 
 Collection expressions:
-  - Prefer **[collection expressions](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/collection-expressions)** (`[e1, e2, …]`, empty **`[]`**, spread **`..sequence`**) wherever the target type supports them (`T[]`, `Span<T>`, `ReadOnlySpan<T>`, `List<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, etc.). The compiler applies efficient lowering—for example an empty **`[]`** can become **`Array.Empty<T>()`** when the value is not mutated after initialization—so **do not call `Array.Empty<T>()` by hand**; write **`[]`** and rely on the compiler. Official reference: [Collection expressions (collection literals) – C# | Microsoft Learn](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/collection-expressions).
+  - Prefer **[collection expressions](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/collection-expressions)** (`[e1, e2, …]`, empty **`[]`**, spread **`..sequence`**) wherever the target type supports them (`T[]`, `Span<T>`, `ReadOnlySpan<T>`, `List<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, etc.). The compiler applies efficient lowering,for example an empty **`[]`** can become **`Array.Empty<T>()`** when the value is not mutated after initialization,so **do not call `Array.Empty<T>()` by hand**; write **`[]`** and rely on the compiler. Official reference: [Collection expressions (collection literals) – C# | Microsoft Learn](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/collection-expressions).
   - Use **`..`** to inline another sequence into a collection expression. For ambiguous overloads, use an explicit target type or cast (see Learn docs on conversions).
   - **Prefer `[…]` / `[]` over `new[] { … }` and `new T[] { … }`** (including empty `new T[] { }`): same semantics, collection expression is the default style when the target supports it.
   - **Not a substitute everywhere:** collection expressions are not valid where a **compile-time constant** is required; they do not apply to **inline arrays**; converting to **`IEnumerable<T>`** materializes a collection (not lazy like some LINQ). Respect those limits from the documentation.
@@ -263,7 +263,7 @@ Functional Patterns:
           _ => "Other"
       };
       ```
-  - **Logical patterns (`or` / `and`):** When the analyzer or IDE suggests **“Merge into logical pattern”**, prefer one combined pattern instead of several separate `is` checks, redundant `if` branches, or duplicate `case` bodies that mean the same thing. Use **`or`** to merge alternatives (types, constants, `null`, relational patterns); use **`and`** when multiple conditions must hold together. Very long `or` chains may stay as a helper or `static readonly` hash set if readability suffers—otherwise merge.
+  - **Logical patterns (`or` / `and`):** When the analyzer or IDE suggests **“Merge into logical pattern”**, prefer one combined pattern instead of several separate `is` checks, redundant `if` branches, or duplicate `case` bodies that mean the same thing. Use **`or`** to merge alternatives (types, constants, `null`, relational patterns); use **`and`** when multiple conditions must hold together. Very long `or` chains may stay as a helper or `static readonly` hash set if readability suffers,otherwise merge.
       ```csharp
       // Good: single logical pattern – one place to read and change
       if (httpCode is 200 or 204 or 304)
@@ -462,7 +462,7 @@ Code Clarity:
       ```
 
 XML Documentation Style:
-  - Always write block-shaped XML doc tags (`<summary>`, `<remarks>`, `<example>`, etc.) as **multi-line blocks**: opening tag, content, and closing tag each on their own `///` line — even when the content is a single short sentence. Inline parameter-level tags (`<param>`, `<returns>`, `<typeparam>`, `<exception>`) stay on a single `///` line. See `documentation-style.md` for the brevity limits applied to the content.
+  - Always write block-shaped XML doc tags (`<summary>`, `<remarks>`, `<example>`, etc.) as **multi-line blocks**: opening tag, content, and closing tag each on their own `///` line, even when the content is a single short sentence. Inline parameter-level tags (`<param>`, `<returns>`, `<typeparam>`, `<exception>`) stay on a single `///` line. See `documentation-style.md` for the brevity limits applied to the content.
       ```csharp
       // Good: multi-line summary block, single-sentence content; inline <param>/<returns>
       /// <summary>
@@ -484,7 +484,7 @@ XML Documentation Style:
       public decimal CalculateTotal(Order order, decimal taxRate) { /* ... */ }
       ```
       ```csharp
-      // Avoid: tags and content collapsed onto a single line — breaks the consistent block shape.
+      // Avoid: tags and content collapsed onto a single line, breaks the consistent block shape.
       /// <summary>Order identifier.</summary>
       public OrderId Id { get; init; }
 

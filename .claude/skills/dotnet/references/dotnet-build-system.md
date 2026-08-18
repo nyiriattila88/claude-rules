@@ -54,7 +54,7 @@ alwaysApply: false
 #### Directory.Build.props
 - Central version management
 - Common build properties in an unconditional `PropertyGroup`
-- **Release-only warnings as errors:** use a **separate** `PropertyGroup` with `Condition="'$(Configuration)' == 'Release'"` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` (and optional `<WarningsNotAsErrors>`). In Release, **compiler warnings become build errors**, so pipelines that only build **Debug** will miss those failures—**always validate with `dotnet restore --locked-mode -c Release`, `dotnet build -c Release`, and `dotnet test -c Release`** so **restore and build both reject new warnings** (aligned with locked-restore flow below).
+- **Release-only warnings as errors:** use a **separate** `PropertyGroup` with `Condition="'$(Configuration)' == 'Release'"` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` (and optional `<WarningsNotAsErrors>`). In Release, **compiler warnings become build errors**, so pipelines that only build **Debug** will miss those failures,**always validate with `dotnet restore --locked-mode -c Release`, `dotnet build -c Release`, and `dotnet test -c Release`** so **restore and build both reject new warnings** (aligned with locked-restore flow below).
 - NuGet-related metadata in a `<PropertyGroup Condition="'$(IsPackable)' == 'true'">` so it applies only to packable projects (see `dotnet-repository-structure.md` and `dotnet-nuget-publishing.md`)
 - Shared package versions (unconditional, for reference)
 
@@ -196,7 +196,7 @@ exit $script:hasUnexpectedFailures ? 1 : 0
 
 ### Locked Restore Flow (Required in CI/CD)
 
-Always separate restore/build/test into distinct steps and enforce lock-file restore mode. **Use `-c Release` on restore** so **`TreatWarningsAsErrors` (Release)** applies to NuGet/restore warnings—same “no new warnings” bar as build.
+Always separate restore/build/test into distinct steps and enforce lock-file restore mode. **Use `-c Release` on restore** so **`TreatWarningsAsErrors` (Release)** applies to NuGet/restore warnings,same “no new warnings” bar as build.
 
 - `dotnet restore --locked-mode -c Release`
 - `dotnet build -c Release --no-restore`

@@ -38,13 +38,13 @@ Other layouts (e.g. multiple stacks per env like `environments/dev/common`, `env
 - Resource files: group by concern (e.g. `ecs.tf`, `iam.tf`, `lb.tf`, `apigateway.tf`, `dynamodb.tf`).
 - **outputs.tf:** Output only what other stacks or pipelines need; add descriptions.
 
-## Resource dependencies — make ordering explicit
+## Resource dependencies: make ordering explicit
 
-Terraform builds its apply order from **references** between blocks: reading `aws_x.foo.arn` — or `module.a.some_output` — from somewhere else creates an implicit dependency edge, so the referenced thing is created first. A value nobody references is *not* ordered relative to anything — Terraform is free to read or create it at any point, including too early. Wiring dependencies correctly is therefore not optional polish; it is what keeps a first `apply` from failing.
+Terraform builds its apply order from **references** between blocks: reading `aws_x.foo.arn`, or `module.a.some_output`, from somewhere else creates an implicit dependency edge, so the referenced thing is created first. A value nobody references is *not* ordered relative to anything, Terraform is free to read or create it at any point, including too early. Wiring dependencies correctly is therefore not optional polish; it is what keeps a first `apply` from failing.
 
 ### Pass cross-module values through outputs → inputs, not a `data` re-lookup
 
-When one module (or the root) needs a value another module **creates**, route it through an `output` on the producer and an attribute reference / input variable on the consumer — `module.producer.some_output`. That reference is a tracked edge, so Terraform builds the producer first and a from-scratch apply just works. **Do not re-look-up the produced resource by name with a `data` source.** A bare name string (`function_name = "playback-states-read-event-handler"`) is opaque to Terraform: it cannot tie the read back to the module that creates the resource, so nothing guarantees ordering and you pay a redundant API read on every plan. Prefer module outputs over data sources whenever the value originates **inside the same configuration**; reserve `data` sources for things a *different* owner/run created out-of-band (a shared platform bucket, a pre-existing hosted zone).
+When one module (or the root) needs a value another module **creates**, route it through an `output` on the producer and an attribute reference / input variable on the consumer, `module.producer.some_output`. That reference is a tracked edge, so Terraform builds the producer first and a from-scratch apply just works. **Do not re-look-up the produced resource by name with a `data` source.** A bare name string (`function_name = "playback-states-read-event-handler"`) is opaque to Terraform: it cannot tie the read back to the module that creates the resource, so nothing guarantees ordering and you pay a redundant API read on every plan. Prefer module outputs over data sources whenever the value originates **inside the same configuration**; reserve `data` sources for things a *different* owner/run created out-of-band (a shared platform bucket, a pre-existing hosted zone).
 
 #### ✅ DO
 
@@ -55,7 +55,7 @@ output "lambda_invoke_arn" {
   value = aws_lambda_alias.live.invoke_arn
 }
 
-# Consumer reads that OUTPUT — attribute reference ⇒ Terraform orders the lambda first.
+# Consumer reads that OUTPUT: attribute reference ⇒ Terraform orders the lambda first.
 resource "aws_apigatewayv2_integration" "read" {
   integration_uri = module.read_event_handler.lambda_invoke_arn
 }
@@ -73,7 +73,7 @@ module "write_event_handler" {
 ```hcl
 # Child re-looks-up the lambda / queue by name via data sources, even though a sibling
 # module in the same run creates them. The name is a plain string with no edge back to
-# the producer — nothing forces the producer to exist first (see the failure below).
+# the producer: nothing forces the producer to exist first (see the failure below).
 data "aws_lambda_function" "read_handler" {
   function_name = "playback-states-read-event-handler"
 }
@@ -95,17 +95,17 @@ Error: reading SQS Queue (playback-state-writes.fifo) URL: couldn't find resourc
   with module.write_event_handler.data.aws_sqs_queue.writes,
 ```
 
-The fix is almost never `depends_on` on the data source — it is to delete the lookup and reference the producer's output, as above.
+The fix is almost never `depends_on` on the data source, it is to delete the lookup and reference the producer's output, as above.
 
-### `depends_on` — only for real ordering with no data flow
+### `depends_on`: only for real ordering with no data flow
 
-Use explicit `depends_on` when a genuine ordering requirement exists but **no value flows** between the blocks to express it (e.g. an IAM role policy must exist before the principal uses the role at runtime, or a resource relies on an API the module can't reference). Keep it minimal — every `depends_on` you can replace with a direct reference, you should, because references are self-documenting and survive refactors.
+Use explicit `depends_on` when a genuine ordering requirement exists but **no value flows** between the blocks to express it (e.g. an IAM role policy must exist before the principal uses the role at runtime, or a resource relies on an API the module can't reference). Keep it minimal, every `depends_on` you can replace with a direct reference, you should, because references are self-documenting and survive refactors.
 
 #### ✅ DO
 
 ```hcl
 # No attribute of the policy is referenced, but the Lambda must not be invoked
-# before its execution-role policy is attached — express that ordering explicitly.
+# before its execution-role policy is attached: express that ordering explicitly.
 resource "aws_lambda_function" "handler" {
   depends_on = [aws_iam_role_policy.handler]
   # ...
@@ -115,7 +115,7 @@ resource "aws_lambda_function" "handler" {
 #### ❌ DON'T
 
 ```hcl
-# depends_on used where a plain reference already implies the order — noise that
+# depends_on used where a plain reference already implies the order: noise that
 # can even mask the fact that the real dependency is the referenced attribute.
 resource "aws_lambda_function" "handler" {
   role       = aws_iam_role.handler.arn   # already orders the role first
@@ -123,7 +123,7 @@ resource "aws_lambda_function" "handler" {
 }
 ```
 
-> Source: HashiCorp Terraform docs — *Resource dependencies* (implicit references vs. `depends_on`) and *Data sources* (read timing during plan/refresh).
+> Source: HashiCorp Terraform docs, *Resource dependencies* (implicit references vs. `depends_on`) and *Data sources* (read timing during plan/refresh).
 
 ## File organization
 
@@ -137,14 +137,14 @@ Two independent rules keep a module navigable: **where a `local` is declared**, 
 #### ✅ DO
 
 ```hcl
-# locals.tf — service_name is used by ecs.tf AND iam.tf, so it lives centrally.
+# locals.tf: service_name is used by ecs.tf AND iam.tf, so it lives centrally.
 locals {
   service_name = "${var.component_name}-${var.environment}"
 }
 ```
 
 ```hcl
-# cloudwatch_alarms.tf — this threshold is used only here, so keeping it in-file is fine.
+# cloudwatch_alarms.tf: this threshold is used only here, so keeping it in-file is fine.
 locals {
   cpu_alarm_threshold = 80
 }
@@ -153,7 +153,7 @@ locals {
 #### ❌ DON'T
 
 ```hcl
-# ecs.tf — service_name is also referenced from iam.tf, so it must not be
+# ecs.tf: service_name is also referenced from iam.tf, so it must not be
 # buried in one resource file; move it to locals.tf.
 locals {
   service_name = "${var.component_name}-${var.environment}"
@@ -162,7 +162,7 @@ locals {
 
 ### Split long files by concern
 
-When a single resource file grows large — typically `apigateway.tf` with many routes/integrations, or a CloudWatch file holding both dashboards and alarms — split it into concern-named files instead of letting one file own everything. Keep the names descriptive and concern-based (`<concern>.tf`).
+When a single resource file grows large, typically `apigateway.tf` with many routes/integrations, or a CloudWatch file holding both dashboards and alarms, split it into concern-named files instead of letting one file own everything. Keep the names descriptive and concern-based (`<concern>.tf`).
 
 #### ✅ DO
 
@@ -181,18 +181,18 @@ cloudwatch.tf   # 600 lines: dashboards, dozens of alarms, and SNS wiring in one
 
 ### When a single concern is still too large
 
-Concern-based splitting is not enough when one concern is itself huge (an API Gateway with dozens of routes, a CloudWatch file with a big dashboard). Apply these in order — the goal stays the same: a maintainer can immediately tell where a given resource lives.
+Concern-based splitting is not enough when one concern is itself huge (an API Gateway with dozens of routes, a CloudWatch file with a big dashboard). Apply these in order, the goal stays the same: a maintainer can immediately tell where a given resource lives.
 
 1. **Sub-divide by sub-concern.** Split `apigateway.tf` into `apigateway_routes.tf`, `apigateway_integrations.tf`, `apigateway_authorizers.tf`; split CloudWatch into `cloudwatch_dashboard.tf` and `cloudwatch_alarms.tf`.
 2. **Collapse repetition with `for_each`/`count`.** Dozens of near-identical resources (alarms, dashboard widgets, routes) belong in one `for_each` block driven by a map/local, not N copy-pasted blocks. This shrinks a file far more than splitting it.
-3. **Externalize large inline documents.** A CloudWatch dashboard body or a long policy JSON does not belong inline in HCL — move it to `templates/<name>.json.tftpl` and load it with `templatefile(...)`. This is usually what makes a dashboard file explode.
+3. **Externalize large inline documents.** A CloudWatch dashboard body or a long policy JSON does not belong inline in HCL, move it to `templates/<name>.json.tftpl` and load it with `templatefile(...)`. This is usually what makes a dashboard file explode.
 4. **Size cue: ~150 lines.** When one resource group passes roughly 150 lines, that is a good signal to give it its own file; below that, keep it with its concern.
-5. **Last resort — a nested module.** If a component is genuinely complex, extract it to `infra/modules/<component>/`, but keep nesting flat (one or two levels) and never wrap a single resource in a module.
+5. **Last resort, a nested module.** If a component is genuinely complex, extract it to `infra/modules/<component>/`, but keep nesting flat (one or two levels) and never wrap a single resource in a module.
 
 #### ✅ DO
 
 ```hcl
-# cloudwatch_dashboard.tf — the large JSON lives in a template, not inline.
+# cloudwatch_dashboard.tf: the large JSON lives in a template, not inline.
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = local.dashboard_name
   dashboard_body = templatefile("${path.module}/templates/dashboard.json.tftpl", {
@@ -202,7 +202,7 @@ resource "aws_cloudwatch_dashboard" "main" {
 ```
 
 ```hcl
-# cloudwatch_alarms.tf — one for_each instead of dozens of near-identical blocks.
+# cloudwatch_alarms.tf: one for_each instead of dozens of near-identical blocks.
 resource "aws_cloudwatch_metric_alarm" "this" {
   for_each = local.alarms
 
@@ -216,7 +216,7 @@ resource "aws_cloudwatch_metric_alarm" "this" {
 #### ❌ DON'T
 
 ```hcl
-# cloudwatch.tf — a 2,000-line file: the full dashboard JSON inline plus 30
+# cloudwatch.tf: a 2,000-line file: the full dashboard JSON inline plus 30
 # copy-pasted alarm blocks that differ only in name and threshold.
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_body = <<EOF
@@ -225,9 +225,9 @@ resource "aws_cloudwatch_dashboard" "main" {
 }
 ```
 
-> Sources: HashiCorp Terraform Style Guide (file names, local values) and AWS Prescriptive Guidance — *Best practices for code base structure* (service-named files, the ~150-line cue, externalizing lengthy documents).
+> Sources: HashiCorp Terraform Style Guide (file names, local values) and AWS Prescriptive Guidance, *Best practices for code base structure* (service-named files, the ~150-line cue, externalizing lengthy documents).
 
-## Missing CLI — check WSL before giving up
+## Missing CLI: check WSL before giving up
 
 If `tofu` (OpenTofu) or `terragrunt` (or `terraform`) is **not installed** on the host, do not stop. On Windows the tool is often installed inside **WSL** instead.
 
@@ -235,12 +235,12 @@ If `tofu` (OpenTofu) or `terragrunt` (or `terraform`) is **not installed** on th
 2. **If missing, check for WSL:** verify WSL exists (e.g. `wsl --status` or `wsl -l -q`). If there is no WSL, report that the tool is missing and stop.
 3. **Check inside WSL:** run the lookup in the default distro, e.g. `wsl command -v tofu` / `wsl command -v terragrunt`. If found there, run the Terragrunt/Tofu commands through WSL (`wsl <command>`).
 4. **Path translation:** when invoking via WSL, the working directory and any path arguments must be WSL paths (`/mnt/c/...`), not Windows paths. Run from the correct env/stack directory inside WSL.
-5. **Permission model is unchanged:** running through WSL does **not** relax the `apply` rule below — `apply`/`destroy` via `wsl terragrunt apply` still requires explicit permission. `plan` stays safe.
+5. **Permission model is unchanged:** running through WSL does **not** relax the `apply` rule below, `apply`/`destroy` via `wsl terragrunt apply` still requires explicit permission. `plan` stays safe.
 
 ### ✅ DO
 
 ```text
-A host gépen nincs tofu. WSL telepítve van, és `wsl command -v tofu` megtalálta —
+A host gépen nincs tofu. WSL telepítve van, és `wsl command -v tofu` megtalálta,
 a plan-t `wsl`-en keresztül futtatom a /mnt/c/... úton lévő stack könyvtárból.
 ```
 
@@ -258,9 +258,9 @@ megnéznéd, hátha WSL alatt elérhető.)
 
 ## `apply` requires explicit permission (critical)
 
-- **First check whether a CI/CD pipeline owns the deployment** — see [[deployment-path]]. If a GitHub Actions workflow or an Azure DevOps pipeline deploys this repo, that is the deployment path, and a local `apply` is the wrong tool whether or not permission was given. The local `apply` is the fallback only when no pipeline exists; being locked out of the pipeline (no PAT, no `gh auth`) is not such a case.
-- **Never run `apply` on your own initiative.** Any state-changing command — `terraform apply`, `terragrunt apply`, `tofu apply` (and `destroy`, `run-all apply/destroy`) — may be executed **only** with the user's explicit permission.
-- **Always ask first**, unless the user has authorized it in the current prompt — in that case you may run it.
+- **First check whether a CI/CD pipeline owns the deployment**, see [[deployment-path]]. If a GitHub Actions workflow or an Azure DevOps pipeline deploys this repo, that is the deployment path, and a local `apply` is the wrong tool whether or not permission was given. The local `apply` is the fallback only when no pipeline exists; being locked out of the pipeline (no PAT, no `gh auth`) is not such a case.
+- **Never run `apply` on your own initiative.** Any state-changing command, `terraform apply`, `terragrunt apply`, `tofu apply` (and `destroy`, `run-all apply/destroy`), may be executed **only** with the user's explicit permission.
+- **Always ask first**, unless the user has authorized it in the current prompt, in that case you may run it.
 - **`plan` is always safe.** Read-only commands (`plan`, `validate`, `fmt`, `output`, `state list`) need no permission; run them freely to show what an `apply` would change, then wait for approval.
 - The same permission model applies to `git push` (see `git-conventions.md`).
 

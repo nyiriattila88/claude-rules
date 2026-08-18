@@ -5,7 +5,7 @@ priority: always
 
 # How rules from this repo are loaded
 
-Rules in `.claude/rules/` are loaded automatically via Claude Code's `@import` mechanism — declared in this repo's root `CLAUDE.md` and pulled in by any project (or global `~/.claude/CLAUDE.md`) that imports it.
+Rules in `.claude/rules/` are loaded automatically via Claude Code's `@import` mechanism, declared in this repo's root `CLAUDE.md` and pulled in by any project (or global `~/.claude/CLAUDE.md`) that imports it.
 
 **No manual `Read` is required.** When you see this file in your context, the import chain has already executed; the other rule files are loaded too.
 

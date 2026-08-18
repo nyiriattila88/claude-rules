@@ -4,7 +4,7 @@ applies_to: "**/*.md"
 priority: when-editing-rules
 ---
 
-# Claude Rules — Meta Rule
+# Claude Rules: Meta Rule
 
 This document outlines the meta-rules for Claude operations on rule files in this repository.
 

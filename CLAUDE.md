@@ -33,7 +33,7 @@ macOS/Linux equivalent:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, `aws`, `azure-devops`, `local-code-review`, and `devils-advocate-review` are triggerable from any project.
+After linking, `dotnet`, `typescript`, `terraform`, `aws`, `azure-devops`, `local-code-review`, and `devils-advocate-review` are triggerable from any project.
 
 ## Core rule index (eager imports)
 
@@ -87,6 +87,7 @@ Each skill is a thin `SKILL.md` (trigger + index) over the detailed rule files i
 | Skill | Triggers on | References |
 |------|-------------|-----------|
 | `dotnet` | C#/.NET code, `.csproj`/`.sln`/`Directory.*.props`, NuGet, xUnit, MSBuild, ASP.NET | 14 files: C# style, API, testing, repo structure, solution, dependencies, build system, locked restore, project file format, tools (consuming/publishing), NuGet (publishing/signing), benchmarking |
+| `typescript` | TS/JS source on Node, `package.json`/`tsconfig.json`/`eslint.config.*`/`vitest.config.*`, npm/pnpm, TS API (Fastify, Hono, Nest), Zod, vitest, Node Dockerfile | 10 files: repo structure (component-first, three layers), tsconfig (`strict`, `noUncheckedIndexedAccess`, `erasableSyntaxOnly`), language style (`unknown` over `any`), local development (the `launchSettings` equivalent: npm scripts + `--env-file` + `tsx --watch`), config layering (Zod, fail fast at startup), testing (vitest, component tests first), dependencies (pnpm, `--frozen-lockfile`, downgrade needs `node_modules` gone too), error handling (operational vs. programmer error, SIGTERM), API (validate at the boundary, 202 for async, charset), Docker (multi-stage, `node` not `npm start`, no Alpine for native modules) |
 | `terraform` | `.tf`/`.hcl`, `infra/`, Terragrunt/OpenTofu, `plan`/`apply`; `apply` needs permission | Terraform/Terragrunt layout, root/account/env, modules, resource dependencies (module outputs → inputs over `data` re-lookups; implicit refs vs. `depends_on`) |
 | `aws` | any AWS work: services, API/SDK (boto3, SDK for .NET), `aws` CLI, IAM policy/action, service quota, endpoint, CloudFormation, Well-Architected; **plus orphan/unused-resource audits and cost cleanups** | Agent Toolkit for AWS (`aws-core` plugin: `aws-mcp` MCP server + 15 curated skills) as primary; official AWS docs over public URLs via `WebFetch` as fallback; docs-over-memory; knowledge not action (mutating ops stay permission-gated); traffic generation kept low by default (dashboard ~10–20 calls, endpoint 1–2). Orphan audit: diff live inventory against **all** terraform states, verify every hit with a second signal, and know the untracked-but-live false positives (blue/green target groups, `run-task` taskdef families, bootstrap, active CUR exports) |
 | `jira` | Jira issue létrehozás/szerkesztés, EPIC + taskok, Acceptance Criteria, mezőkitöltés, watcher, JQL, Atlassian MCP | NX konvenciók: az **AC dedikált mező** (`customfield_10124`, ADF bullet-lista), nem a leírásba írt „Definition of Done"; `Account` sima szám, `Team` UUID; a **watcher-endpoint nincs kitéve** az MCP-ben (a `watches` read-only), mondd ki, ne pótold @mentionnel; a konvenciókat friss ticketből olvasd ki; EPIC + témánként csoportosított taskok bizonyítékkal és „ne töröld" szakasszal |

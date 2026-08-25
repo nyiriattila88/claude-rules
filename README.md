@@ -66,6 +66,19 @@ claude-rules/
           dotnet-nuget-publishing.md
           dotnet-nuget-signing.md
           dotnet-benchmarking.md
+      typescript/
+        SKILL.md
+        references/                # 10 Node/TypeScript rule files
+          ts-repository-structure.md
+          ts-tsconfig.md
+          ts-language-style.md
+          ts-local-development.md
+          ts-configuration.md
+          ts-testing.md
+          ts-dependencies.md
+          ts-error-handling.md
+          ts-api.md
+          ts-docker.md
       terraform/
         SKILL.md
         references/terraform-terragrunt.md
@@ -105,7 +118,7 @@ macOS/Linux:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `terraform`, `aws`, `jira`, `azure-devops`, `local-code-review`, and `devils-advocate-review` trigger from any project.
+After linking, `dotnet`, `typescript`, `terraform`, `aws`, `jira`, `azure-devops`, `local-code-review`, and `devils-advocate-review` trigger from any project.
 
 ## Making the lessons collection automatic (one-time per machine)
 

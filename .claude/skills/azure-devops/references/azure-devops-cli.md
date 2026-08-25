@@ -640,6 +640,44 @@ A `reason=manual`-ból arra következtetek, hogy valaki kézzel indította,
 pedig pipeline-completion trigger volt.
 ```
 
+## A push nem indított CI-t: előbb a futó buildet nézd, ne a YAML-t
+
+A build definíció `triggers` blokkjában a **`maxConcurrentBuildsPerBranch: 1`** azt jelenti, hogy amíg fut
+egy build az adott ágon, **az újabb push CI-triggere elnyomódik**. A legrosszabb benne, hogy az ADO ezt
+**nem pótolja**: amikor a futó build befejeződik, a közben érkezett commitokra **nem indul** semmi, és a
+Builds listában sincs nyoma annak, hogy lett volna mit indítani.
+
+Így néz ki: pusholsz, vársz tíz percet, nem indul semmi, és elkezded a `trigger:` blokkot hibáztatni.
+
+A lekérdezés, ami eldönti:
+
+```powershell
+$raw = az devops invoke --org "https://dev.azure.com/<org>" --detect false `
+  --area build --resource definitions --route-parameters project=<projekt> definitionId=<id> `
+  --api-version 7.1 -o json 2>$null
+($raw | ConvertFrom-Json).triggers | ConvertTo-Json -Compress
+```
+
+Ha `maxConcurrentBuildsPerBranch` 1, és fut egy build ugyanazon az ágon, akkor **ez a magyarázat**. A
+megoldás a befejezés után **kézzel indított futás** a friss commitra, nem a YAML piszkálása.
+
+Ugyanez a helyzet a `batchChanges: true` esetén is, csak ott a köztes commitok **egy** futásba
+kötegelődnek, tehát legalább lefutnak.
+
+### ✅ DO
+
+```text
+Két pushra sem indult CI. Lekérdezem a definíció triggerét: maxConcurrentBuildsPerBranch=1,
+és tényleg fut egy build a develop-on. Megvárom, majd kézzel indítom a friss commitra.
+```
+
+### ❌ DON'T
+
+```text
+(Nem indult CI → a YAML `trigger:` blokkját kezdem átírni, vagy a preview API-val
+keresek szintaktikai hibát. A YAML jó volt, a sor volt foglalt.)
+```
+
 ## Pipeline resource: melyik build artifactját kapod
 
 A `resources.pipelines.pipeline.branch` hiánya **csendes** hiba. A schema szerint *„defaults to all branches, used only for manual or scheduled triggers"*: egy **scheduled** deploy a legutóbbi sikeres buildet veszi **bármely** ágról, akár egy feature branchét,, és azt telepíti a trunk környezetébe.

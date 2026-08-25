@@ -640,6 +640,59 @@ A `reason=manual`-ból arra következtetek, hogy valaki kézzel indította,
 pedig pipeline-completion trigger volt.
 ```
 
+## `TF_VAR_*` pipeline változó Terraformhoz: csendben elvész (kritikus)
+
+Az Azure DevOps a pipeline változókat **nagybetűsítve** exportálja a taskok környezetébe (`my.var` →
+`MY_VAR`). A Terraform `TF_VAR_` felismerése viszont **kis-nagybetű érzékeny**: a változó neve a prefix
+után betű szerint kell egyezzen a `variable` blokk nevével.
+
+Egy `TF_VAR_enable_s4` nevű pipeline változó tehát `TF_VAR_ENABLE_S4`-ként érkezik, és a Terraform egy
+`ENABLE_S4` nevű változóra érti, ami nem létezik. **Nem hibázik, nem figyelmeztet**, egyszerűen a default
+értéket használja.
+
+**A veszélyes rész a következménye.** Ha a változó egy `count = var.enable_x ? 1 : 0` kapcsolót hajt
+meg, akkor az apply végigfut, `Apply complete! Resources: 0 added` üzenettel **sikeresen** zöldre vált, és
+a pipeline következő stage-e hasal el valami látszólag független dolgon (nem létező ECR repository,
+hiányzó task definition). Az igazi hiba két stage-dzsel korábban volt, egy zöld pipálló mögött.
+
+A megoldás: **ne `TF_VAR_` nevű pipeline változót használj**. Adj neki eleve nagybetűs nevet, és a
+Terragrunt `inputs` blokkjában olvasd `get_env`-vel:
+
+```yaml
+variables:
+  - name: ENABLE_S4
+    value: ${{ parameters.deploy_s4 }}
+```
+
+```hcl
+inputs = {
+  # lower(), mert a pipeline "True"-t is adhat "true" helyett, a tobool() csak a kisbetűset fogadja el.
+  enable_s4 = tobool(lower(get_env("ENABLE_S4", "false")))
+}
+```
+
+Az alternatíva a task `env:` blokkja, ami megőrzi a pontos nevet, de ehhez a template-láncon végig kell
+vezetni egy paramétert, és minden új változónál újra.
+
+### Ellenőrzés
+
+Az apply logjában az `Apply complete!` sor a bizonyíték: ha a scenario-kapcsolót bekapcsoltad, de az
+üzenet `0 added`, akkor a kapcsoló nem ért oda.
+
+### ✅ DO
+
+```text
+Az apply zöld, de "0 added, 1 changed". Bekapcsoltam egy scenariot, tehát ~30 erőforrásnak kellene
+létrejönnie: a kapcsoló nem ért el a Terraformig, nem az apply hibázott.
+```
+
+### ❌ DON'T
+
+```text
+(Az apply zöld → továbbmegyek. A következő stage "repository does not exist" hibáját az ECR-nél
+kezdem keresni, pedig a bemenet veszett el két lépéssel korábban.)
+```
+
 ## A push nem indított CI-t: előbb a futó buildet nézd, ne a YAML-t
 
 A build definíció `triggers` blokkjában a **`maxConcurrentBuildsPerBranch: 1`** azt jelenti, hogy amíg fut

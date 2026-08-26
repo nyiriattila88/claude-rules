@@ -12,7 +12,8 @@ Windows 11 Enterprise · user `nyiria` · shells: PowerShell (primary) and Git B
 
 ## Shells & tooling
 
-- **2026-08-20, a Bash tool nem használható ezen a gépen:** a `PATH`-ba a Windows-lista kerül `;`-elválasztással, `/usr/bin` nélkül, így minden coreutils hívás (`ls`, `head`, `type`) exit 127-cel hasal el, miközben `/usr/bin/bash` maga fut. Fájlolvasásra és shellre PowerShell kell, a [[shell-path-conversion]] `MSYS_NO_PATHCONV` trükkje itt nem segít.
+- **2026-08-26, a Bash tool működik ezen a gépen** (a 2026-08-20-i ellenkező bejegyzés elavult): a `git`, `pnpm`, `node`, `sed`, `grep`, `az` és a coreutils is fut belőle, egy teljes repo-felállítás ment végig rajta. A [[shell-path-conversion]] `/`-kezdetű argumentumokra vonatkozó szabálya viszont továbbra is él.
+- **2026-08-26, a home-dir `.editorconfig` beszivárog a repo buildjébe:** a `C:\Users\nyiria\.editorconfig` `_` prefixet ír elő a private fieldekre, és minden `C:\Users\nyiria\...` alatti repo buildjét eltöri IDE1006-tal, amelynek a saját `.editorconfig`-jában nincs `root = true` (a PR által nem is érintett fájlokon is). Nem a change hibája, a review-hoz `dotnet build -p:EnforceCodeStyleInBuild=false` a kerülőút.
 
 ## Accounts
 

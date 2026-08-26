@@ -30,6 +30,9 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-08-26, a háttérben futó munka hibája vesszen el kevésbé:** egy 202 + poll API-nál a hibaüzenetet a **rekordba** kell írni, ne csak logolni. Amíg csak status: failed jött vissza, egy 5 perces néma timeout és egy 0,8 másodperces flag-hiba ugyanúgy nézett ki a hívónak.
 - **2026-08-26, `az repos pr create --description` Bashből is elveszti az ékezetet:** a felküldött szöveg tárolt bájtja utf-8-ként, cp1250-ként és cp852-ként sem dekódolható vissza, tehát nem csak a visszaolvasás torzít (mint a PR-kommentnél), hanem maga a feltöltés romlik el. A PR-leírás angol, ott nem gond, magyar szöveget REST-tel küldj, és feltöltés után olvasd vissza.
 
+- **2026-08-26, a Fluent Bit `Rule` sora szóközzel tagol:** a `Rule $msg /^request completed$/ tag true` regexében a szóköz elcsúsztatja a mezőhatárokat, a filter init `[error] [lib] backend failed`-del elhasal, a log_router **exit 255**, és mivel `essential`, viszi az egész ECS taskot. Egy szavas mezőre szűrj (`$logType /^request$/`), ne az üzenet szövegére.
+- **2026-08-26, hosszú AWS-váráshoz rövid a role session:** az `aws deploy wait` 30 percig várna, a service connection OIDC sessionje viszont 15 perc, így a waiter `ExpiredTokenException`-nel hal meg, amit a script „failed or rolled back"-nek jelentett, **miközben a deployment futott** (a következő futás `DeploymentLimitExceededException`-e árulta el). Hosszú várást bonts több taskra, és a credential-hibát soha ne fordítsd távoli állapotra.
+
 ## Windows & PowerShell
 
 - **2026-08-14, ékezetes `.ps1` csak UTF-8 BOM-mal:** a Windows PowerShell 5.1 a BOM nélküli scriptet ANSI-ként olvassa, így az ékezetes stringek mojibake-ké válnak, és a parse is elhasalhat („Missing ')' in method call"). Átirányított stdout-nál a `[Console]::OutputEncoding` sem érvényesül, írj bájtokat a `[System.Console]::OpenStandardOutput()`-ra.

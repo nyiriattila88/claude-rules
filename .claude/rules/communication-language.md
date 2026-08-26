@@ -10,6 +10,10 @@ The only exception is language **mirroring**: if the user writes in English (or 
 - **Visible reasoning / thinking**, any "gondolkodás", intermediate steps, or partial results rendered to the user must be Hungarian, not English.
 - **Process text**, plans, progress narration, step summaries, tool-action descriptions, todo items.
 
+**Not covered: what goes into a repository.** Code comments, XML docs and HCL descriptions are
+English regardless of the conversation's language, see [[documentation-style]]. The chat and the
+repository have different audiences.
+
 ## Technical terms stay canonical
 
 Writing in Hungarian does **not** mean translating technical/industry terms. Keep them in their canonical (usually English) form everywhere, chat, reasoning, summaries alike. See [[documentation-style]] (technical terms, don't translate).

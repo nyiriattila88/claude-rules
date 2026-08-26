@@ -12,6 +12,41 @@ Keep summary **content** terse, **a single sentence by default**. The XML doc **
 
 Documentation is not a place to record history (migrations, decisions considered, alternatives rejected). That belongs in commit messages, PRs, ADRs, or runbooks.
 
+## Language: what goes into a repository is English
+
+**Every comment and in-code documentation is written in English**, whatever language the conversation
+about the work runs in: `//` and `#` comments, C# XML docs, HCL `description` attributes,
+`[SuppressMessage]` justifications, and the doc comments of any other language.
+
+This does not contradict [[communication-language]]. That rule governs what the **user** reads: the
+chat, the reasoning, the plans, the summaries. This one governs what the **repository** carries. The
+two audiences are different: a repository is read by people who never saw the conversation, by tooling,
+and by whoever opens the file in two years.
+
+Markdown documents in the repository (`README.md`, ADRs, runbooks) follow the repository's own
+established practice, they are not covered by this rule. Commit messages and PR descriptions are
+English, see [[git-conventions]].
+
+### ✅ DO
+
+```csharp
+// The CDN forwards the Range header in both directions, so the player can seek.
+```
+
+```hcl
+# KMS decrypt for SecureString SSM parameters, scoped via kms:ViaService to the SSM service.
+```
+
+### ❌ DON'T
+
+```csharp
+// A CDN a Range fejlécet mindkét irányba továbbadja, így a lejátszóban lehet tekerni.
+```
+
+```hcl
+# A ssm_prefix-ből épül a paraméter elérési útja.
+```
+
 ## Two characters that read as AI-written: `—` and `;`
 
 **Never use an em dash (`—`) in prose, and avoid the semicolon (`;`) in prose.** These two are the
@@ -56,7 +91,7 @@ public sealed class RenderContentProxy(IHttpClientFactory httpClientFactory)
     {
         for (int index = 0; index < count; index++)   // syntax, leave it alone
         {
-            // A CDN a Range fejlécet mindkét irányba továbbadja, így a lejátszóban lehet tekerni.
+            // The CDN forwards the Range header in both directions, so the player can seek.
         }
     }
 }
@@ -68,7 +103,7 @@ public sealed class RenderContentProxy(IHttpClientFactory httpClientFactory)
 /// <summary>
 /// Serves rendered output through this API — instead of redirecting to the CDN.
 /// </summary>
-// A CDN a Range fejlécet továbbadja; így a lejátszóban lehet tekerni.
+// The CDN forwards the Range header; so the player can seek.
 ```
 
 ```text
@@ -97,18 +132,10 @@ Keep established technical/industry terms in their canonical form (usually Engli
 Az első hívásnál cold start lassítja a Lambdát; a provisioned concurrency ezt elkerüli.
 ```
 
-```csharp
-// Warm-up ping a cold start elkerülésére az első kérés előtt.
-```
-
 ### ❌ DON'T
 
 ```text
 Az első hívásnál a hidegindítás lassítja a Lambdát; a kiépített konkurencia ezt elkerüli.
-```
-
-```csharp
-// Bemelegítő pingelés a hidegindítás elkerülésére az első kérés előtt.
 ```
 
 ### Code identifiers and names: never translate
@@ -118,22 +145,22 @@ The same rule applies, even more strictly, to **code identifiers and names**: va
 #### ✅ DO
 
 ```csharp
-// A service_name a default_tags "component-name" tagjét hajtja meg.
+// service_name drives the default_tags "component-name" tag.
 ```
 
 ```hcl
-# A ssm_prefix-ből épül a paraméter elérési útja; lásd locals.tf.
+# The parameter path is built from ssm_prefix, see locals.tf.
 resource "aws_ssm_parameter" "component_name" {
 ```
 
 #### ❌ DON'T
 
 ```csharp
-// A „Szolgáltatásnév" a default_tags „komponensnév" tagjét hajtja meg.
+// The "Service name" drives the default_tags "component name" tag.
 ```
 
 ```hcl
-# A „SSM-előtag"-ból épül a „paraméter elérési útja".
+# The path is built from the "SSM prefix" into the "parameter path".
 resource "aws_ssm_parameter" "component_name" {
 ```
 

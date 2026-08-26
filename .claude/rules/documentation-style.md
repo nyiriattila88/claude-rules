@@ -137,6 +137,38 @@ resource "aws_ssm_parameter" "component_name" {
 resource "aws_ssm_parameter" "component_name" {
 ```
 
+### Language constructs: name them as the code spells them
+
+The rule reaches **language constructs** as well: `throw`, `catch`, `finally`, `await`, `using`, `yield`.
+This case slips through more easily than a noun does, because the Hungarian noun built from it inflects
+naturally and reads as plain prose rather than as a translated term.
+
+Draw the line at the part of speech. The **verb** describing the behaviour may stay Hungarian where it is
+the established phrasing, "a metódus kivételt dob" is how developers say it. The moment you refer to the
+**construct itself**, write it as the code spells it, and never nominalise it into Hungarian: there is a
+`throw` in that file, and a reader searching for it will not find "dobás".
+
+#### ✅ DO
+
+```text
+A SubtitleKey mostantól SubtitleSourceRejectedException-t dob, de ez a `throw` nem szerepel
+az interfész `<remarks>`-ében.
+```
+
+```text
+A `catch` ág csak egy `throw`-t tartalmaz, tehát elhagyható.
+```
+
+#### ❌ DON'T
+
+```text
+A dobás nem része a contractnak.
+```
+
+```text
+Az elkapó ág csak egy újradobást tartalmaz, tehát elhagyható.
+```
+
 ## Targets
 
 - C# XML doc on types, methods, properties, fields, parameters.

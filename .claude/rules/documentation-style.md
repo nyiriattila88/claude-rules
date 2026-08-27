@@ -27,6 +27,27 @@ Markdown documents in the repository (`README.md`, ADRs, runbooks) follow the re
 established practice, they are not covered by this rule. Commit messages and PR descriptions are
 English, see [[git-conventions]].
 
+### The failure mode: a Hungarian chat pulls the comments with it
+
+This rule is easy to state and easy to break, because the pull comes from the conversation. While
+reasoning in Hungarian about a Terraform module, the comment that explains a threshold gets written in
+Hungarian too, and it reads perfectly natural in the moment. It is still wrong: the file goes to people
+who never saw the conversation.
+
+**The trigger is not the file type, it is the moment.** Every time you write a comment during a
+Hungarian-language session, that is the moment to switch languages. Applies to `.tf`, `.hcl`, `.yml`
+pipeline files, `.conf`, `.cs`, and anything else the repository carries.
+
+**Check before committing, not after.** A comment written in Hungarian survives review easily, because
+the reviewer also speaks Hungarian. Grep your own diff:
+
+```bash
+git diff | grep -E '^\+\s*(#|//)' | grep -iE 'tehat|ezert|nincs|mert|kell|hogy|ami|csak'
+```
+
+Accent-free Hungarian (`tehat`, `ezert`, `keres`) does not make it English, and it is harder to spot than
+accented text. Write proper English instead of accent-free Hungarian.
+
 ### ✅ DO
 
 ```csharp
@@ -41,6 +62,11 @@ English, see [[git-conventions]].
 
 ```csharp
 // A CDN a Range fejlécet mindkét irányba továbbadja, így a lejátszóban lehet tekerni.
+```
+
+```hcl
+# Ez az egyetlen jel, ami a mert terhelesi profilnal mukodik, mert a kerescount nem higul.
+# (Accent-free Hungarian is still Hungarian. This one shipped in a Terraform module.)
 ```
 
 ```hcl

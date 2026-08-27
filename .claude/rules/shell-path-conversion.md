@@ -50,3 +50,34 @@ aws ssm get-parameters-by-path --profile dev-admin --path /ENT/LMSVideo
 ```
 
 That second `DON'T` is the dangerous one: the conclusion is stated confidently, and the next step is a deletion. See [[aws-orphan-resource-audit]] for why "the API returned nothing" is never sufficient evidence on its own.
+
+## A másik útvonal-csapda: a Windows bináris nem érti a `/c/...` alakot
+
+Ez **nem** az MSYS-átírás, hanem a fordítottja, és külön fejezetet kap, mert a hibaüzenet ugyanarra a
+dologra, az útvonalra panaszkodik, így könnyű a fájlt hibáztatni a formátum helyett.
+
+A Git Bash `/c/Users/...` alakját a **Windows-natív** programok nem oldják fel: az `aws.exe`
+`--cli-input-json "file:///c/Users/..."` hívása „Unable to load paramfile", a `python.exe`
+`open('/c/Users/...')` hívása `FileNotFoundError`, a `git.exe --file /c/...` pedig „can't open patch".
+
+Tartsd meg mindkét alakot, és aszerint válassz, **ki nyitja meg a fájlt**:
+
+| Ki használja | Melyik alak |
+|---|---|
+| shell builtin, coreutils, átirányítás (`>`, `cat`, `sed`) | `/c/Users/...` |
+| Windows `.exe` argumentumként átadott útvonal (`aws`, `python`, `git`, `az`) | `C:\Users\...` |
+
+### ✅ DO
+
+```bash
+SPU=/c/Users/nyiria/scratch          # shell-nek
+SPW='C:\Users\nyiria\scratch'       # Windows binarisnak
+aws cloudwatch get-metric-data --metric-data-queries "file://$SPW\q.json" > "$SPU/out.json"
+```
+
+### ❌ DON'T
+
+```bash
+# A Windows binaris nem talalja meg, es az utvonalra panaszkodik, nem a formatumra.
+aws cloudwatch get-metric-data --metric-data-queries file:///c/Users/nyiria/scratch/q.json
+```

@@ -88,6 +88,39 @@ differently by the people who receive it, regardless of how good its content is.
 This applies to **everything a human reads**: chat replies, documentation, README files, code comments,
 XML docs, HCL `description` attributes, commit messages, PR descriptions, and review comments alike.
 
+### The plain hyphen `-` is allowed, and is the replacement
+
+The ban is on the **em dash** `—` specifically, not on dashes. The ordinary hyphen `-` is fine as a
+separator, in a parenthetical, and doubled as `--`. It is what a person types, which is the whole point:
+`—` requires a special key or an autocorrect, so its presence is the tell, and the hyphen carries the same
+meaning without it.
+
+Stating only the ban was a mistake worth recording: read on its own it looks like "avoid dashes", so every
+separator gets forced into a comma or a colon even where a hyphen reads better. Reach for the hyphen
+whenever a comma, a colon, or two sentences would be clumsier.
+
+#### ✅ DO
+
+```text
+Scaling signals - one panel per mechanism, each against its own threshold.
+```
+
+```text
+A p99 emelkedik, a p95 nem - egy részhalmaz torlódik, nem az egész service lassul.
+```
+
+#### ❌ DON'T
+
+```text
+(Em dash, ez a tiltott karakter:)
+Scaling signals — one panel per mechanism.
+```
+
+```text
+(Kötőjel helyett erőltetett kettőspont, mert a szabályt „semmilyen gondolatjel" néven olvastam:)
+Scaling signals: one panel per mechanism, each against its own threshold, and the reading is.
+```
+
 ### What to write instead
 
 | Instead of | Write |

@@ -39,11 +39,17 @@ Hungarian-language session, that is the moment to switch languages. Applies to `
 pipeline files, `.conf`, `.cs`, and anything else the repository carries.
 
 **Check before committing, not after.** A comment written in Hungarian survives review easily, because
-the reviewer also speaks Hungarian. Grep your own diff:
+the reviewer also speaks Hungarian. Grep your own diff, and use a **wide** word list:
 
 ```bash
-git diff | grep -E '^\+\s*(#|//)' | grep -iE 'tehat|ezert|nincs|mert|kell|hogy|ami|csak'
+git diff | grep -E '^\+\s*(#|//)' | grep -iE \
+  'teh[aá]t|ez[eé]rt|mert|hogy|nem |csak|kell|lesz|minden|amit|ami |ahol|mivel|viszont|illetve|valamint|akkor|m[eé]g|m[aá]r|k[oö]telez|attrib[uú]tum|ut[oó]dja|v[aá]ltoz[oó]|[eé]rt[eé]k|k[eé]r[eé]s|k[uü]sz[oö]b|m[eé]r[eé]s|sz[aá]mol|[aá]llapot|jav[ií]t|f[aá]jl'
 ```
+
+**A narrow list is worse than no list**, because a clean result reads as proof. A short list of the
+obvious words (`tehat`, `ezert`, `nincs`) let `kotelezove`, `attributum` and `utodja` through twice in one
+session, and each time the grep reported zero. If the grep comes back empty, read the comment lines in the
+diff yourself before believing it.
 
 Accent-free Hungarian (`tehat`, `ezert`, `keres`) does not make it English, and it is harder to spot than
 accented text. Write proper English instead of accent-free Hungarian.

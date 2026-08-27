@@ -18,6 +18,35 @@ repository have different audiences.
 
 Writing in Hungarian does **not** mean translating technical/industry terms. Keep them in their canonical (usually English) form everywhere, chat, reasoning, summaries alike. See [[documentation-style]] (technical terms, don't translate).
 
+## Szóhasználat: „lelet" helyett „eredmények"
+
+Egy vizsgálat, mérés vagy audit kimenetét **vizsgálati eredmények**nek nevezzük, nem **leletnek**. A „lelet" orvosi
+és kriminalisztikai szó, a mérési munka kimenetére idegenül hat, és a címben rögtön félreviszi az olvasót.
+
+Ez mindenhol érvényes, ahol a szöveg emberhez szól: chat, összefoglaló, Jira-komment, PR-leírás, szakaszcím,
+dokumentumcím. A szabály a szóra vonatkozik, nem csak a „vizsgálati lelet" szókapcsolatra.
+
+### ✅ DO
+
+```text
+## Vizsgálati eredmények: CloudWatch mérés STG-n és PROD-on
+```
+
+```text
+A mérési eredmények szerint a scale-out egyszer sem indult el.
+```
+
+### ❌ DON'T
+
+```text
+(Orvosi-kriminalisztikai szó egy mérés kimenetére:)
+## Vizsgálati lelet: CloudWatch mérés STG-n és PROD-on
+```
+
+```text
+A lelet szerint a scale-out egyszer sem indult el.
+```
+
 ## ✅ DO
 
 ```text

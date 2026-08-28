@@ -30,6 +30,7 @@ claude-rules/
       claude-rules-source.md
       claude-meta-rule.md
       token-economy.md
+      context-handoff.md
       communication-language.md
       file-format-preservation.md
       documentation-style.md

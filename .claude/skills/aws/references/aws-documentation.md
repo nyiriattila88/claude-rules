@@ -25,6 +25,67 @@ Trivial, high-confidence facts (e.g. "S3 stores objects") don't need a fetch. Th
 
 `WebFetch` / `WebSearch` are available in this environment as deferred tools, load them via `ToolSearch` (`select:WebFetch,WebSearch`) before first use.
 
+## Second principle: the native mechanism before your own
+
+Before you derive a value, hand-roll a workflow, or reach for a heavier component, ask **whether AWS
+already publishes or provides it**. Look this up, do not answer from memory: the native option is often
+newer than the training data, so "there is no built-in way to do this" is exactly the belief that needs
+a doc check. This is the same instinct as docs over memory, applied to design rather than to syntax.
+
+A derived value is not free. It drifts from the thing it approximates, it needs a comment explaining
+the arithmetic, and worst of all it can disagree with the AWS component that reads the real metric,
+so a dashboard and the alarm beside it show different numbers for the same question.
+
+### The question to ask, in order
+
+1. Is there a **metric** for this? Check the service's CloudWatch metric list before computing one
+   from two others.
+2. Is there a **feature** for this? Check the deployment, scaling and lifecycle options of the service
+   before assembling the behaviour from separate components.
+3. If the answer is no, say so explicitly and cite where you looked. Then the derivation is a
+   documented decision instead of an assumption.
+
+### Two ways this went wrong in one session
+
+Both were caught by someone reading the result, not by the work itself.
+
+**A derived metric that already existed.** A dashboard panel computed requests per target as
+`RequestCount / PERIOD * 60 / LiveTaskCount`. ALB publishes **`RequestCountPerTarget`**, and that is
+the exact metric the `ALBRequestCountPerTarget` scaling policy evaluates. The derived form also
+understated during a scale-out, because `LiveTaskCount` counts tasks not yet registered in the target
+group, so the panel and the alarm disagreed precisely when the reading mattered.
+
+**A heavier component than needed.** Asked about ECS blue/green, the answer given was that CodeDeploy
+is required, and that switching `deploymentController` forces Terraform to replace every service. That
+is true of the CodeDeploy path. ECS has had a **built-in blue/green strategy** since mid-2025, where
+the controller stays `ECS` and only `deploymentConfiguration.strategy` changes, so nothing is replaced.
+The real plan came out `0 to destroy`. A confident wrong answer about a destructive change is the
+expensive kind.
+
+### ✅ DO
+
+```text
+Kell a per-target kérésszám. Előbb megnézem a szolgáltatás metrikalistáját: van
+`RequestCountPerTarget`, és pont ezt olvassa a policy is. Azt használom.
+```
+
+```text
+Blue/green kérdés. Mielőtt kimondom, hogy CodeDeploy kell, megnézem a deployment-opciókat
+a friss doksiban, mert ez a fajta képesség szokott újabb lenni, mint amit tudok.
+```
+
+### ❌ DON'T
+
+```text
+(Levezetem, mert két metrikából kijön, és nem kérdezem meg, hogy van-e rá kész metrika.
+A dashboard és a mellette lévő alarm más számot mutat ugyanarra.)
+```
+
+```text
+(„Erre nincs beépített megoldás" emlékezetből, doksi-ellenőrzés nélkül, és ebből egy
+nagyobb, destruktív változtatást vázolok fel, mint amennyi valójában kellene.)
+```
+
 ## Official tooling: Agent Toolkit for AWS (`aws-core` plugin)
 
 AWS ships an official agent tool that supersedes hand-fetching where it's installed: the **Agent Toolkit for AWS** (<https://aws.amazon.com/products/developer-tools/agent-toolkit-for-aws/>). It bridges the gap between a model's training data and current AWS capabilities. Three parts:

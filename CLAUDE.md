@@ -40,6 +40,7 @@ After linking, `dotnet`, `typescript`, `terraform`, `aws`, `azure-devops`, `loca
 @.claude/rules/claude-rules-source.md
 @.claude/rules/claude-meta-rule.md
 @.claude/rules/token-economy.md
+@.claude/rules/context-handoff.md
 @.claude/rules/communication-language.md
 @.claude/rules/file-format-preservation.md
 @.claude/rules/documentation-style.md
@@ -58,6 +59,7 @@ After linking, `dotnet`, `typescript`, `terraform`, `aws`, `azure-devops`, `loca
 | `claude-rules-source.md` | Mandatory first-action read + reply marker line. **Always applies.** |
 | `claude-meta-rule.md` | How Claude must edit `*.md` rule files in this repo. |
 | `token-economy.md` | **Critical:** minimize token consumption; trade speed (not quality) for fewer tokens; **fan-out / multiple parallel agents need explicit permission (even under ultracode), one `+1` parallel agent is allowed sparingly to save time.** |
+| `context-handoff.md` | **Before the context window runs out, write the state to `CONTEXT-HANDOFF.md`** in the working directory: decisions, what is deployed where with ids, what is in flight, what is blocked. The next context reads it and **deletes it**, because a stale handoff reads as authoritative as a current one. |
 | `communication-language.md` | Reply in Hungarian by default (incl. visible reasoning/process text); mirror the user's language; keep technical terms untranslated. What goes into the repository is English, see `documentation-style.md`. A vizsgálat vagy mérés kimenete **vizsgálati eredmények**, nem **lelet**. |
 | `file-format-preservation.md` | Preserve file encoding, line endings, indentation during edits. |
 | `documentation-style.md` | **Code comments and in-code documentation are English**, whatever language the chat runs in. **No em dash and no semicolon in prose**, both read as AI-written. In code the `;` is syntax and stays, never bulk-replace it. XML doc / inline comment / Terraform comment limits, terse, "why not what". |

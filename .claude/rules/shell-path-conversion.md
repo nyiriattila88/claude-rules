@@ -81,3 +81,40 @@ aws cloudwatch get-metric-data --metric-data-queries "file://$SPW\q.json" > "$SP
 # A Windows binaris nem talalja meg, es az utvonalra panaszkodik, nem a formatumra.
 aws cloudwatch get-metric-data --metric-data-queries file:///c/Users/nyiria/scratch/q.json
 ```
+
+## A harmadik útvonal-csapda: a Git Bash `/tmp` és a WSL `/tmp` nem ugyanaz
+
+Egy gépen belül több külön `/tmp` létezik: a Git Bash sajátja (egy Windows temp mappa), a WSL
+disztribúció sajátja, és a Windows `%TEMP%`. Ha az egyikbe írsz és a másikból olvasod, a fájl
+**nincs ott**, és a hiba nem az útvonalra panaszkodik, hanem `No such file or directory`-t vagy
+`exit 127`-et ad, ami elgépelésnek látszik, nem rendszer-különbségnek.
+
+Akkor jön elő, amikor egy Bash tool-hívás ír egy scriptet vagy egy adatfájlt, és utána `wsl -e`
+hívja meg. Maga a script még megtalálható `/mnt/c/...` alakban, de amit **ő** olvas be `/tmp`-ből,
+az már a WSL saját `/tmp`-je, tehát üres.
+
+**Két világ között csak `/mnt/c/...` útvonalon oszd meg a fájlt.** A scratchpad erre jó hely:
+Windowsból `C:\Users\...`, WSL-ből `/mnt/c/Users/...`, ugyanaz a bájt.
+
+Ez a [[shell-path-conversion]] többi esetétől annyiban más, hogy itt nem az útvonal *alakja* rossz,
+hanem a *fájlrendszer*, amire mutat. A `/tmp/x` mindkét oldalon érvényes útvonal, csak nem ugyanaz.
+
+### ✅ DO
+
+```bash
+SPU=/c/Users/nyiria/AppData/Local/Temp/claude/.../scratchpad     # Git Bash-nek
+SPW=/mnt/c/Users/nyiria/AppData/Local/Temp/claude/.../scratchpad # WSL-nek, ugyanaz a fajl
+aws ... > "$SPU/ids.txt"
+wsl -e bash -lc "while read -r a b; do echo \$a; done < $SPW/ids.txt"
+```
+
+### ❌ DON'T
+
+```bash
+# A Git Bash /tmp-jebe irok, a WSL meg a sajatjaban keresi: exit 127,
+# es a hibauzenet ugy hangzik, mintha elirtam volna a nevet.
+cat > /tmp/script.sh <<EOF
+...
+EOF
+wsl -e bash /tmp/script.sh
+```

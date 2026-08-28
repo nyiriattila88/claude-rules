@@ -86,6 +86,80 @@ A dashboard és a mellette lévő alarm más számot mutat ugyanarra.)
 nagyobb, destruktív változtatást vázolok fel, mint amennyi valójában kellene.)
 ```
 
+## ECS task size is a scaling decision, not only a cost one
+
+The `cpu` value in an ECS task definition is a **share of CPU time**, not a core. 256 units is 0.25
+vCPU, and the task cannot exceed that share even on an idle host. Two consequences follow, and the
+second one is the one that gets missed.
+
+### CPUUtilization is measured against the reservation
+
+The percentage denominator is the CPU reserved in the task definition, not the host capacity. So a
+256-unit task at 100% and a 1024-unit task at 25% are consuming the same absolute compute.
+
+Verified on a live service rather than taken from a doc page: the same service went from 512 to 1024
+CPU and 1024 to 2048 MB between two revisions, and its reported memory utilization fell from **8.43%
+to 5.69%** while the absolute usage **rose** (86 MB to 117 MB). Had the denominator been host
+capacity, the percentage would not have moved.
+
+Two things follow for any dashboard or threshold:
+
+- **A CPU percentage is not comparable across services of different sizes.** The same 40% target
+  means four times the absolute headroom at 1024 units as at 256.
+- **A panel showing CPU% is uninterpretable without the task size.** Say so in the legend if the
+  reservation is not on the dashboard.
+
+### A small task widens the average-versus-maximum gap
+
+ECS publishes one CPU datapoint **per task per minute**, so `Average` is the mean across tasks and
+`Maximum` is the busiest single task. Target tracking reads the Average. The smaller the task, the
+further apart those two run: at 0.25 vCPU a single in-flight request can drive one task to 100%
+while the service average barely moves.
+
+Measured on a load test: a service peaked at **16.6% average against 57.5% maximum**, a 3.5x gap. A
+40% target on the Average is therefore unreachable on that traffic shape, because it would need the
+busiest task at roughly 140%. This is the same failure as the original 70% target, with a smaller
+number.
+
+So raising task size is not only about throughput: **it narrows the gap and makes the average-based
+policy meaningful again.** That is a scaling argument, and it is the stronger one.
+
+### What a resize obliges you to revisit
+
+Raising the floor without touching these leaves the configuration inconsistent:
+
+1. **Fargate valid combinations.** 1024 CPU units require at least 2048 MB. Memory moves with CPU or
+   the task definition is rejected.
+2. **`max_capacity`.** The ceiling is capacity times task size. `min=2 max=8` at 0.25 vCPU is 0.5 to
+   2 vCPU; at 1 vCPU it is 2 to 8. Quadrupling the task size quadruples the cost ceiling.
+3. **Request-count targets.** A per-target request rate was calibrated against the old task size. A
+   service that sustained 600 requests per minute per target at 0.25 vCPU handles considerably more
+   at 1 vCPU, so the old target now scales out earlier than needed and you pay twice.
+
+### ✅ DO
+
+```text
+A CPU target-tracking nem sül el. Előbb megmérem az Average és a Maximum távolságát,
+és megnézem a task size-t, mert a százalék ahhoz relatív. A 3.5x rés maga a válasz.
+```
+
+```text
+Task size emelése STG/PROD-on: egyszerre nézem a memória-kombinációt, a max_capacity
+költségplafont és a request-count targetek újrakalibrálását.
+```
+
+### ❌ DON'T
+
+```text
+(Két service CPU-százalékát összehasonlítom, pedig más a rezervációjuk, tehát
+a két szám nem ugyanazt méri.)
+```
+
+```text
+(Task size-t emelek a skálázási jel javítására, de a max_capacity-t és a
+request-count targetet változatlanul hagyom.)
+```
+
 ## Official tooling: Agent Toolkit for AWS (`aws-core` plugin)
 
 AWS ships an official agent tool that supersedes hand-fetching where it's installed: the **Agent Toolkit for AWS** (<https://aws.amazon.com/products/developer-tools/agent-toolkit-for-aws/>). It bridges the gap between a model's training data and current AWS capabilities. Three parts:

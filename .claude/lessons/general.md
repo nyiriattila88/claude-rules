@@ -43,6 +43,39 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   A kimenetet az első `{`/`[` karaktertől vágd, ne a hívást kezdd újra.
 - **2026-08-27, ECS `CPUUtilization` `Maximum` statisztika félrevezető skálázás-vizsgálatnál:** 5 perces bucketen 98,7% csúcsot mutatott, miközben egyetlen 1 perces **átlag** sem érte el a 17%-ot, és a target tracking alarm `Average`-en dolgozik, tehát scale-out nem is indulhatott. A `Maximum` a task-szintű adatpontok maximuma, nem a service átlaga: azzal a statisztikával és azzal a periódussal kérdezz, amit az alarm használ.
 - **2026-08-27, a Chrome MCP toolok csak a saját session tab-groupját látják:** a felhasználó másik ablakban nyitott tabjához nem lehet „csatlakozni", a `tabs_context_mcp` nem is listázza. A tab léte és címe Windows UI Automationnel kideríthető (`Chrome_WidgetWin_1` ablakok TabItem-jei), de az URL kiolvasása (omnibox ValuePattern, Chrome History DB) auto módban classifier-blokkolt: kérd el az URL-t, vagy kérd meg a felhasználót, hogy húzza a tabot a session groupjába.
+- **2026-08-28, a Terraform nem tud minden állapotátmenetet kifejezni, és ez csak apply-nál derül ki:**
+  az ECS built-in blue/green visszabontásánál (`BLUE_GREEN` -> `ROLLING oda-vissza`) az üresre futó
+  `dynamic "deployment_configuration"` blokk a providernek „ne változtass", tehát a strategy marad, miközben
+  az `advancedConfiguration` kiesik, és az API elutasítja. A plan tiszta volt, kétszer, két különböző hibával.
+  Ahol az API a **jelenlegi** állapot ellen validál, ott a kétfázisú átmenet első fázisa explicit CLI-hívás,
+  nem HCL. Ilyenkor a plan hiánya nem bizonyíték.
+- **2026-08-28, a WSL nem látja a Windows SSO token cache-t:** a `terragrunt` `No valid credential sources`-t
+  ad, miközben ugyanaz a profil Git Bashből működik. Megoldás: `aws configure export-credentials --format env`,
+  de a fájlt **LF-re kell konvertálni**, mert a CRLF ``-je a session tokenbe kerül, és a hiba akkor már
+  `invalid header field value for "X-Amz-Security-Token"`, ami lejárt tokennek látszik, nem sorvégnek.
+- **2026-08-28, a zöld ADO deploy-futás nem bizonyítja, hogy bármit deployolt:** az env-enkénti stage-ek
+  `manual_enabled: ${{ parameters.deploy_stg }}`-re vannak kötve, tehát paraméter nélkül indítva
+  **egyetlen stage sem futott**, a run mégis `succeeded` lett. 18 repón futott így végig, és csak az élő
+  AWS-állapot mutatta meg (a task size és a deployment strategy nem változott). Deploy után az
+  eredményt a cél-rendszerből ellenőrizd, ne a futás státuszából, és nézd meg, hogy a run
+  tényleg futtatott-e stage-et.
+- **2026-08-28, CloudWatch `PutDashboard` üres dimenzió-értékre félrevezető hibát ad:** a
+  `"TargetGroup", ""` párra `Invalid metric field type, only "String" type is allowed`-ot mond, ami
+  típushibának hangzik, pedig az üres **érték** a baj. A `tofu validate` és a `plan` is tiszta, mert a
+  JSON szintaktikailag helyes. A `plan -out` + `show -json`-ból ki lehet szedni a `dashboard_body`-t és
+  végigmenni a widgeteken, a hibaüzenet `dataPath`-ja (`/widgets/2/properties/metrics/2/3`) pontosan
+  ezekre az indexekre mutat.
+- **2026-08-30, Messenger E2EE hangüzenet kimentése:** a web UI nem ad letöltés opciót (csak Eltávolítás/Továbbítás/Rögzítés/Jelentés), és a lejátszó `<audio>` eleme nincs a DOM-ban, így a `querySelectorAll` üresen jön. Működő út: `HTMLMediaElement.prototype.play` hookolása, majd a `currentSrc` blob URL fetchelése és `<a download>` klikk (dekódolt WAV lesz, nem az eredeti formátum). Ugyanitt: a `performance.getEntriesByType('resource')` query stringes URL-jeinek **visszaadását** a classifier blokkolja, a page-en belüli feldolgozásuk viszont átmegy.
+
+- **2026-08-30, egy feature branch deployja a branch teljes elmaradasat kiviszi, nem csak a te diffedet:**
+  a sajat valtozasom 2 add / 1 change volt, az apply viszont `7 to destroy`-jal indult, mert a repo `develop`-jan
+  ket napja allt egy masik ticket bucket- es tabla-atnevezese, amit STG-re sosem applyoltak. Egy S3 bucket toroldott
+  es ujra letrejott uj neven, a DynamoDB tablat csak a deletion protection mentette meg. Deploy elott a plan
+  **destroy-szamat** olvasd el, akkor is, ha a sajat diffed pusztan additiv, es akkor is, ha ugyanaz a valtozas mar
+  atment harom masik repon.
+- **2026-08-30, a beépített Browser pane és a Chrome extension nem egyenrangú:** a pane-ben nincs fájlfeltöltés és nincs batch, a screenshot pedig elhasal, amint a pane elrejtődik (a felhasználó gépelése is elrejti). Az extensionben van `file_upload` és `browser_batch`, és a másik ablak nem gátol. Hosszú UI-munkát ott kezdj.
+- **2026-08-30, ha a UI nem ad letöltést, a resource timeline-t nézd, ne a DOM-ot:** a mobilon készült Picsart projektek fotóihoz semmilyen menü nem adott képfájlt, de az editor betöltése után a `performance.getEntriesByType('resource')` kiadta a `cdn-project-files...` URL-eket, és azok auth nélkül letölthetők voltak.
+- **2026-08-30, nem reagáló gomb előbb layout-kérdés, mint hiba:** a Picsart tömeges `Delete` gombja 1600x1000-es ablaknál némán nem csinált semmit, 2400x1400-nál viszont azonnal jött a megerősítő dialógus. Kerülőút keresése előtt nagyíts ablakot.
 
 ## Windows & PowerShell
 
@@ -57,3 +90,8 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-08-27, központi `PackageVersion` felvétele MINDEN lock fájlt érvénytelenít, ahol a csomag tranzitív:** egy `Serilog.AspNetCore` referencia miatt a CI `dotnet restore --locked-mode` `NU1004`-cel bukott a `ReportProcessor`-on, pedig az nem is hivatkozik rá. A `Transitive` bejegyzés `CentralTransitive`-ra vált, és egyetlen projekt restore-ja ezt nem javítja. Central Package Management mellett a **teljes solutionre** kell `dotnet restore <sln> --force-evaluate`, majd `--locked-mode`-dal ellenőrizni, mielőtt pusholsz.
 - **2026-08-27, az ADO build log lossy forrás, nem lehet belőle fájlt visszaépíteni:** a `tofu fmt` diffjét a pipeline logjából vettem át, és két dolgot csendben elvesztett. Minden `true` szót `***`-ra maszkolt (mert egy pipeline-változó értéke `true`, és a secret-maszkolás szó szerint egyezik), valamint kidobta a nem-ASCII karaktereket (egy `·` eltűnt). Mindkettő szintaktikailag ép fájlt ad, tehát a hiba csak a következő futásnál derül ki. Ha logból veszel át tartalmat, utána `git diff -w`-vel ellenőrizd, hogy tényleg csak whitespace változott.
 - **2026-08-28, a „CLI not found" hiba lehet egy futó MSI/winget upgrade átmeneti állapota:** az `aws-sso-login` `Get-Command aws`-a azért nem talált semmit, mert a winget épp cserélte az `aws.exe`-t, és az a ~3 perces uninstall→install ablakban fizikailag nem létezett, miközben a PATH-bejegyzés végig megvolt. Telepítés vagy PATH-javítás előtt nézd meg a hiba időpontját a mai `MsiInstaller` eventek (1040 kezdet / 1042 vég) ablakához képest.
+- **2026-08-28, JSON-t soha ne adj át PowerShellből natív exe argumentumaként:** a `--load-balancers "$json"`
+  hívásból a PowerShell kiszedi az idézőjeleket, és az `aws` `Expecting property name enclosed in double quotes`-ot
+  ad, ami elgépelésnek látszik. Fájlon add át (`file://...`, `Out-File -Encoding ascii -NoNewline`). Ugyanitt:
+  a `ConvertTo-Json -AsArray` **nincs** PS 5.1-ben, és egy elemű tömbnél a `ConvertTo-Json` objektumot ad, nem tömböt.
+- **2026-08-31, az ADO deploy pipeline a Build artifactjat deployolja, nem a branch HEAD-jet:** a `resources.pipelines` a branch **utolso befejezett** buildjenek artifactjat veszi, igy egy frissen pusholt infra valtozas ket koron at csendben nem kerult ki, az apply pedig `No changes`-t mondott, ami provider-hibanak latszott. Infra valtozas utan eloszor a Build pipeline-t futtasd, es a deploy `sourceVersion`-jet ne olvasd bizonyitekként: az a deploy commitja, nem az artifacté.

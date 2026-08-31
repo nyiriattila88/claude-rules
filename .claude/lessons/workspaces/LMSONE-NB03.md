@@ -19,3 +19,4 @@ Windows 11 Enterprise · user `nyiria` · shells: PowerShell (primary) and Git B
 
 - **2026-08-14, két GitHub fiók él egyszerre:** `nyiri-attila-nxkey` (munkahelyi, jellemzően ez az aktív) és `nyiriattila88` (személyes). Személyes repóban push előtt váltani kell, lásd [[git-identity]].
 - **2026-08-14, a globális git identity a munkahelyi:** `Nyiri.Attila@nexius.hu`; a `claude-rules` repóban szándékos repo-local override van (`nyiriattila88@gmail.com`).
+- **2026-08-30, két Chrome csatlakozik az extensionhöz:** a `Personal Chrome` (`5e7a300d`) és egy másik (`5c600449`). A Picsart-fiók a `Personal Chrome`-ban van bejelentkezve, a másikban nincs. Két csatlakozott böngészőnél a választást fel kell dobni a felhasználónak.

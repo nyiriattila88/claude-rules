@@ -617,15 +617,29 @@ bent marad a branchen.
 
 Két csapda, amelyik egy valódi session-ben sorban két hibás következtetést okozott:
 
-**A REST API `reason` mezője nem mondja meg, mi indította a futást.** Pipeline-completion triggerből indult futásnál a `reason` értéke **`manual`**, a `requestedFor` pedig a rendszer-identitás (`Microsoft.VisualStudio.Services.TFS`) vagy a triggerelő build szerzője. A **valódi** érték a futáson belüli `Build.Reason` (`ResourceTrigger`), ami csak a job logjából olvasható ki, ezért írja ki a probe.
+**A REST API `reason` mezője nem mondja meg, mi indította a futást.** Pipeline-completion triggerből indult futásnál a `reason` értéke **`manual`**, a `requestedFor` pedig a rendszer-identitás (`Microsoft.VisualStudio.Services.TFS`) vagy a triggerelő build szerzője. A **valódi** érték a futáson belüli `Build.Reason` (`ResourceTrigger`), amit a job logja mutat.
+
+**A logot viszont nem kell megnyitni: a `triggerInfo` mező kimondja.** Ugyanaz a `runs list` válasz, ami a
+félrevezető `reason`-t adja, hozza a `triggerInfo`-t is, és az egyértelmű (mérve 2026-08-31-én, 43 deploy
+pipeline-on):
+
+| `triggerInfo` tartalma | Mi indította |
+|---|---|
+| `pipelineTriggerType: PipelineCompletion` + `source`, `version` | a hivatkozott build befejeződése |
+| `scheduleName: <név>` | cron |
+| üres/hiányzik, `reason: manual` | tényleg kézi indítás, a `templateParameters` mondja meg, mire |
+
+A `version` ráadásul a **fogyasztott artifact** verziója, tehát a „mi van kint ezen a környezeten" kérdés
+egyetlen `runs list` hívásból megválaszolható, timeline és job log nélkül. A `triggeredByBuild` ehhez nem
+használható, az pipeline-completion triggernél is `null`.
 
 **Az API késleltetve indexeli a futásokat.** Egy épp elindult run nem jelenik meg azonnal a `runs list`-ben. Egy cron-ablak után **2–4 perccel** nézz rá; ha azonnal kérdezel, azt látod, hogy „nem indult el", pedig fut.
 
 ### ✅ DO
 
 ```text
-A cron ablaka 09:20 volt; 09:24-kor kérdezem le a futásokat, és a stage-log
-`Build.Reason` sorából állapítom meg, mi indította.
+A cron ablaka 09:20 volt; 09:24-kor kérdezem le a futásokat, és a `triggerInfo`
+mezőből állapítom meg, mi indította, nem a `reason`-ből.
 ```
 
 ### ❌ DON'T
@@ -637,7 +651,7 @@ a cron nem működik. (Csak az indexelés késett; a futás megvolt.)
 
 ```text
 A `reason=manual`-ból arra következtetek, hogy valaki kézzel indította,
-pedig pipeline-completion trigger volt.
+pedig a `triggerInfo` ott állt mellette `PipelineCompletion`-nel.
 ```
 
 ## `TF_VAR_*` pipeline változó Terraformhoz: csendben elvész (kritikus)

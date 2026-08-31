@@ -57,6 +57,15 @@ Expects the team **UUID string**. Keystone: `17dba745-ee01-4f70-8764-b86f7dea7e2
 
 JQL caveat: `"Team[Team]" = "Keystone"` silently returns **0 results**, filter by UUID instead.
 
+### Sub-task: Team and Sprint are inherited, do not send them
+
+A Sub-task rejects both `customfield_10001` (Team) and `customfield_10010` (Sprint) with
+`inherits the team assignment from its parent` and `subtasks cannot be associated to a sprint`. Copy
+`Account` (`customfield_10043`) from the parent as a plain number, and leave those two out entirely.
+
+New issues land in **`Draft`**, and the transitions are global, so one call is enough: `20` = Done,
+`5` = In Progress, `6` = To Do.
+
 ### Others worth knowing
 
 `Priority` defaults to `Medium`. Useful selects: `Size` (XS–XL), `Technical complexity` / `Internal impact` / `Social impact` / `Confidence` / `Urgency` / `Importance` (Low/Medium/High), `MoSCoW` (Won't/Could/Should/Must), `Strategic alignment` (RCI/Bitwit/GDE), `Sprint` (`customfield_10010`).

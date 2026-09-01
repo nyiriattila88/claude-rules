@@ -76,6 +76,15 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-08-30, a beépített Browser pane és a Chrome extension nem egyenrangú:** a pane-ben nincs fájlfeltöltés és nincs batch, a screenshot pedig elhasal, amint a pane elrejtődik (a felhasználó gépelése is elrejti). Az extensionben van `file_upload` és `browser_batch`, és a másik ablak nem gátol. Hosszú UI-munkát ott kezdj.
 - **2026-08-30, ha a UI nem ad letöltést, a resource timeline-t nézd, ne a DOM-ot:** a mobilon készült Picsart projektek fotóihoz semmilyen menü nem adott képfájlt, de az editor betöltése után a `performance.getEntriesByType('resource')` kiadta a `cdn-project-files...` URL-eket, és azok auth nélkül letölthetők voltak.
 - **2026-08-30, nem reagáló gomb előbb layout-kérdés, mint hiba:** a Picsart tömeges `Delete` gombja 1600x1000-es ablaknál némán nem csinált semmit, 2400x1400-nál viszont azonnal jött a megerősítő dialógus. Kerülőút keresése előtt nagyíts ablakot.
+- **2026-09-01, a repo `mise.toml` pinnelt tool-verziója nem az, amit a CI használ:** a `mise.toml` `opentofu = 1.9.0`-t írt elő, a pipeline `infra_tooling.yml`-je viszont `1.12.1`-et, és a state is 1.12.1-tel volt írva. A [[deployment-path]] toolchain-parity aggálya ezért a **pipeline template** verziójára szól, nem a repo tool-configjára: azt kell megkeresni, mielőtt lokálisan state-et írsz.
+- **2026-09-01, a CloudTrail `lookup-events` `ErrorCode` mezője üresen jön a hibás híváshoz is:** a `--query 'Events[].[EventTime,Username,ErrorCode]'` mind a 20 sorra `None`-t adott, miközben a teljes `CloudTrailEvent` JSON-ban ott volt az `errorCode: InvalidChangeBatch`. Az összefoglaló oszlopból ne olvass „nem volt hiba"-t, a `CloudTrailEvent`-et parse-old.
+- **2026-09-01, Route 53: a per-zóna rekordlimit eltér az account-szintű Service Quotától:** a `service-quotas` `Records per hosted zone` 10 000-et mutatott, miközben a `get-hosted-zone-limit --type MAX_RRSETS_BY_ZONE` az adott zónára 50-et adott, és az érvényesült. Zóna-limitet a `GetHostedZoneLimit`-tel mérj, a Service Quotas értéke nem bizonyíték.
+- **2026-09-01, az ADO org nevét a git remote-ból vedd, ne találgasd:** a `--org https://dev.azure.com/nexius` „you need to run the login command"-ra futott, és ez a hiba pont úgy néz ki, mint a hiányzó PAT. A helyes org (`Nexius-Aether`) a `git remote -v` kimenetében ott volt. Lásd [[azure-devops-cli]] org-feloldás.
+
+- **2026-09-01, `aws_cloudwatch_metric_alarm`: a percentilis nem `statistic`, hanem `extended_statistic`:** a
+  `statistic = "p99"` a `tofu validate`-en atmegy, es csak plan-idoben bukik provider-hibaval, tehat a lokalis
+  validate nem vedelem. Metric math alarmban (`metric_query.stat`) viszont a p99 ervenyes. Plan-idoben buko hibara
+  a WSL-es `terragrunt plan` a pipeline-nal azonos tofu-verzioval a jo teszt.
 
 ## Windows & PowerShell
 
@@ -96,3 +105,12 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   a `ConvertTo-Json -AsArray` **nincs** PS 5.1-ben, és egy elemű tömbnél a `ConvertTo-Json` objektumot ad, nem tömböt.
 - **2026-08-31, az ADO deploy pipeline a Build artifactjat deployolja, nem a branch HEAD-jet:** a `resources.pipelines` a branch **utolso befejezett** buildjenek artifactjat veszi, igy egy frissen pusholt infra valtozas ket koron at csendben nem kerult ki, az apply pedig `No changes`-t mondott, ami provider-hibanak latszott. Infra valtozas utan eloszor a Build pipeline-t futtasd, es a deploy `sourceVersion`-jet ne olvasd bizonyitekként: az a deploy commitja, nem az artifacté.
 - **2026-08-31, egy ADO futas leallitasa nem allitja meg a mar elindult taskot, es a timeline nem bizonyitek:** egy torlo scriptet tartalmazo stage-et lealitottam, a `Delete...` task a timeline-on `log=None`-nal allt, ebbol azt olvastam ki, hogy meg nem indult el, es kozben 14 ECS service-t torolt, koztuk egy scope-on kivulit, amit a kozos apply nem is epit vissza. Torlo muveletet **a cel-rendszerbol** ellenorizz (`aws ecs list-services`), ne a pipeline metaadatabol, es destruktiv scriptet eleve csak explicit nevlistara engedj, ne a teljes eroforras-halmazra.
+- **2026-08-31, a `stagesToSkip` működik, de futás közben `pending`-nek látszik:** az `az devops invoke`-ból indított
+  run válasza `stagesToSkip: null`-t ad, és a timeline a kihagyandó stage-et `pending`-ként mutatja, amíg sorra nem kerül,
+  csak utána lesz `skipped`. Se a POST válaszából, se a futás közbeni `pending`-ből ne vonj le következtetést.
+- **2026-08-31, `az devops invoke --api-version 7.1-preview.1` parse-hibára fut:** `could not convert string to float:
+  "7.1.1"`, ami hibás paraméternek látszik, pedig a CLI verzió-parse-olása bukik. `7.1-preview` alakban működik.
+- **2026-08-31, ECS `never stabilized` mögött nem létező IAM role állhat, amit a terraform nem lát:** a service
+  `roleArn`-je a helyes `AWSServiceRoleForECS` volt, a modul nem is definiált ELB role-t, a plan `No changes`-t adott,
+  mégis 6 óránként jött az `IAM trust relationship has been misconfigured` egy törölt role-ra, és a deploymentek
+  halmozódtak (5 befejezetlen). A hivatkozás az ECS belső service-rekordjában él, csak újraépítés törli: taint + apply.

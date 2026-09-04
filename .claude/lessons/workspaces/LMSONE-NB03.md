@@ -15,8 +15,11 @@ Windows 11 Enterprise · user `nyiria` · shells: PowerShell (primary) and Git B
 - **2026-08-26, a Bash tool működik ezen a gépen** (a 2026-08-20-i ellenkező bejegyzés elavult): a `git`, `pnpm`, `node`, `sed`, `grep`, `az` és a coreutils is fut belőle, egy teljes repo-felállítás ment végig rajta. A [[shell-path-conversion]] `/`-kezdetű argumentumokra vonatkozó szabálya viszont továbbra is él.
 - **2026-08-26, a home-dir `.editorconfig` beszivárog a repo buildjébe:** a `C:\Users\nyiria\.editorconfig` `_` prefixet ír elő a private fieldekre, és minden `C:\Users\nyiria\...` alatti repo buildjét eltöri IDE1006-tal, amelynek a saját `.editorconfig`-jában nincs `root = true` (a PR által nem is érintett fájlokon is). Nem a change hibája, a review-hoz `dotnet build -p:EnforceCodeStyleInBuild=false` a kerülőút.
 
+- **2026-09-04, a Bash tool `fatal error - add_item`-mel is indulhat:** a `bash.exe: *** fatal error - add_item ("\??\C:\Program Files\Git", "/", ...) failed, errno 1` exit 5-tel minden hívást megbuktat már az első `cd`-nél, tehát a 2026-08-26-i „a Bash tool működik ezen a gépen" bejegyzés nem mindig áll. Ne próbálgasd újra, vidd az egész sessiont PowerShellre.
+
 ## Accounts
 
-- **2026-08-14, két GitHub fiók él egyszerre:** `nyiri-attila-nxkey` (munkahelyi, jellemzően ez az aktív) és `nyiriattila88` (személyes). Személyes repóban push előtt váltani kell, lásd [[git-identity]].
+- **2026-08-14, két GitHub fiók él egyszerre:** `nyiri-attila-nxkey` (munkahelyi) és `nyiriattila88` (személyes). Személyes repóban push előtt váltani kell, lásd [[git-identity]].
 - **2026-08-14, a globális git identity a munkahelyi:** `Nyiri.Attila@nexius.hu`; a `claude-rules` repóban szándékos repo-local override van (`nyiriattila88@gmail.com`).
 - **2026-08-30, két Chrome csatlakozik az extensionhöz:** a `Personal Chrome` (`5e7a300d`) és egy másik (`5c600449`). A Picsart-fiók a `Personal Chrome`-ban van bejelentkezve, a másikban nincs. Két csatlakozott böngészőnél a választást fel kell dobni a felhasználónak.
+- **2026-09-04, a `nexius-learning` org csak a munkahelyi fiókkal látszik:** a `nyiriattila88` alatt (alapból ez az aktív) a `gh api user/orgs` üresen jön és a `gh search repos` sem találja a private repókat, ami hiányzó hozzáférésnek látszik. Előbb `gh auth switch --hostname github.com --user nyiri-attila-nxkey`.

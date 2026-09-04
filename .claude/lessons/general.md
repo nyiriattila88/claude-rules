@@ -85,6 +85,23 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   `statistic = "p99"` a `tofu validate`-en atmegy, es csak plan-idoben bukik provider-hibaval, tehat a lokalis
   validate nem vedelem. Metric math alarmban (`metric_query.stat`) viszont a p99 ervenyes. Plan-idoben buko hibara
   a WSL-es `terragrunt plan` a pipeline-nal azonos tofu-verzioval a jo teszt.
+- **2026-09-03, WSL + SSO: a mukodo `aws sts` hivas nem bizonyitja, hogy a `tofu` is mukodik:** `HOME=/mnt/c/Users/<user>`
+  mellett a CLI latja a Windows SSO cache-t, a tofu Go SDK-ja viszont *refreshelni* probalja a tokent, es
+  `InvalidGrantException`-t kap. Fajl nelkuli fix: a scriptben `eval "$(aws configure export-credentials --format env)"`.
+- **2026-09-03, `aws ce --group-by` ket dimenziot EGY flagben var:** ismetelt `--group-by Type=...` eseten
+  a CLI csendben csak az utolsot alkalmazza, a valasz egy kulcsos csoportokat ad, es a hiba csak a feldolgozasnal
+  jon elo. Helyes forma: `--group-by Type=DIMENSION,Key=SERVICE Type=DIMENSION,Key=USAGE_TYPE`.
+- **2026-09-03, csonkolt kimenetbol ne allapits meg hianyt:** egy `head -c 600`-zal levagott S3 lifecycle JSON-bol
+  arra jutottam, hogy a bucketen nincs MPU-abort es noncurrent expiration rule, pedig a lista 7. es 8. eleme volt,
+  csak nem fert bele. Ha a kovetkeztetes az, hogy valami **nincs**, elotte olvasd vissza a teljes objektumot.
+
+- **2026-09-03, a `deleting S3 Bucket (X) Object (Y)` hiba objektumról szól, nem a bucketről:** egy destroy
+  ezen állt meg, és első olvasatra úgy tűnt, hogy egy **közös** bucketet akar törölni, pedig egy
+  `aws_s3_object` verziójának törlése bukott explicit deny-n. Destroy hibánál a resource-címet olvasd
+  (`module.x.aws_s3_object.this`), ne a hibaüzenet szövegét: a scope-túllépés kérdése épp ezen dől el.
+- **2026-09-03, blokkolt destruktív batch: bontsd fel, ne add fel:** 9 S3 state törlését egy loopban
+  a classifier megtagadta, egyetlen explicit `delete-object` hívás viszont átment. A felbontás a hatókört is
+  láthatóvá teszi, a `Stage 2 classifier error` pedig tranziens, ott egy retry segít.
 
 ## Windows & PowerShell
 
@@ -114,3 +131,11 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   `roleArn`-je a helyes `AWSServiceRoleForECS` volt, a modul nem is definiált ELB role-t, a plan `No changes`-t adott,
   mégis 6 óránként jött az `IAM trust relationship has been misconfigured` egy törölt role-ra, és a deploymentek
   halmozódtak (5 befejezetlen). A hivatkozás az ECS belső service-rekordjában él, csak újraépítés törli: taint + apply.
+- **2026-09-02, `tail -f`-fel figyelt logfájl Windowson zárolva marad, és a `TaskStop` nem öli meg a `tail.exe`-t:**
+  az író PowerShell script `Add-Content`-je `IOException`-re fut, a sorok csendben elvesznek, a script viszont
+  hibátlanul dolgozik tovább, tehát a „nem frissül a log” nem azt jelenti, hogy megállt. Hosszú futású
+  script állapotát külön state-fájlból olvasd, a logolás retryzzen, és a monitor `tail` processzét kézzel lődd ki.
+- **2026-09-04, a `gh api --jq` mintát a PowerShell szétszedi, és a hiba `gh`-hibának látszik:** a
+  `select(.conclusion=="success")` `function not defined: success/0`-ra fut, a `+`-szal fűzött kifejezés pedig
+  `accepts 1 arg(s), received 3`-ra, mert az idézőjelek és a szóközök elvesznek. Szűrésre a natív flaget használd
+  (`gh run list --status success`), összetett formázásra `ConvertFrom-Json`-t, a `--jq` maradjon `.[] | [...] | @tsv`.

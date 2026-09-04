@@ -44,9 +44,11 @@ mielőtt PowerShellből natív CLI-t hívsz, fájlt írsz, vagy encoding-hibát 
   saját codepage-én adja vissza, ellenőrizni külső forrásból (böngésző) kell.
 - **Meglévő fájlt csak `WriteAllBytes`-szal szerkessz.** A `Set-Content` ANSI codepage-et, az
   `Out-File` és a `>` UTF-8 BOM-ot ír, tehát olyan bájtokat is átír, ahol nem szerkesztettél
-  ([[file-format-preservation]]). A recept: `ReadAllLines`, index-alapú csere, `WriteAllBytes`, majd
-  `git diff --numstat` ellenőrzés. Fordítva viszont az **ékezetes `.ps1` script** BOM-ot **igényel**,
-  különben a 5.1 ANSI-ként olvassa.
+  ([[file-format-preservation]]). Cserére a recept `ReadAllLines`, index-alapú csere, `WriteAllBytes`;
+  **sor törlésére vagy beszúrására viszont ez kevés**, ott sorvég-megőrző splitre van szükség, mert
+  mérve az egész fájlt átírta a git szemében. Az ellenőrzés mindig a `plain` és a `-w` numstat
+  összevetése: ha eltérnek, a formátumot rontottad el. Fordítva viszont az **ékezetes `.ps1` script**
+  BOM-ot **igényel**, különben az 5.1 ANSI-ként olvassa.
 - **Egy hibára futó mutáló hívás mellett a művelet lefuthatott.** Egy `Invoke-WebRequest -Method
   Delete` „NonInteractive mode" hibával szállt el, a DELETE mégis megtörtént; az `az pipelines run
   --output table` formázási hibát ad, de a run létrejön. **Előbb kérdezd le az állapotot, ne futtasd

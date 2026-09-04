@@ -163,6 +163,31 @@ git diff --numstat -- $f                   # a szandekolt sorszamnal tobb: forma
 A `[System.Text.Encoding]::UTF8` a `GetBytes` hívásnál BOM nélküli bájtokat ad, tehát ez a forma nem
 visz BOM-ot a fájlba. Ha a fájlnak BOM-ja **volt**, azt külön kell visszaírni.
 
+### Sor törlésére és beszúrására viszont a `ReadAllLines` nem elég
+
+A fenti minta **csere** esetén jó, mert a sorok száma és sorrendje nem változik. Sorok **törlésénél**
+viszont mérve elbukott: egy 23 soros törlés után a `git diff --numstat` a 148 soros fájlra
+`127 hozzáadott / 147 törölt` sort mutatott, miközben a `git diff -w` ugyanarra a fájlra a helyes
+`4 / 24`-et. A tartalom tehát jó volt, de a `ReadAllLines` és a `-join` a fájl minden sorát
+átírta a git szemében.
+
+Amikor sort veszel ki vagy teszel be, **ne veszítsd el a sorvégeket**: bontsd a szöveget úgy, hogy a
+terminátor a darab része maradjon, és a megtartott darabokat változtatás nélkül fűzd össze. Ugyanaz a
+törlés így `0 hozzáadott / 23 törölt` sort adott.
+
+#### ✅ DO
+
+```powershell
+$s = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes($f))
+$parts = [regex]::Split($s, '(?<=\n)')     # minden darab a sajat sorveget viszi
+$sb = New-Object System.Text.StringBuilder
+for ($i = 0; $i -lt $parts.Count; $i++) { if (-not $skipIdx.Contains($i)) { [void]$sb.Append($parts[$i]) } }
+[System.IO.File]::WriteAllBytes($f, [System.Text.Encoding]::UTF8.GetBytes($sb.ToString()))
+```
+
+**Az ellenőrzés a `plain` és a `-w` numstat összevetése.** Ha a kettő eltér, a tartalmi változás jó,
+de a formátumot elrontottad, és a diff olvashatatlan lesz a reviewernek.
+
 ### Ékezetes `.ps1` csak UTF-8 BOM-mal
 
 Fordított irány: a Windows PowerShell 5.1 a **BOM nélküli** scriptet ANSI-ként olvassa, így az

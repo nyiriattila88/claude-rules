@@ -103,6 +103,10 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   a classifier megtagadta, egyetlen explicit `delete-object` hívás viszont átment. A felbontás a hatókört is
   láthatóvá teszi, a `Stage 2 classifier error` pedig tranziens, ott egy retry segít.
 
+- **2026-09-04, a terragrunt `ssh://` alakra normalizálja a modul-forrást:** a `git::git@github.com:...` source miatt beállított `url."https://github.com/".insteadOf "git@github.com:"` nem fog, mert a letöltés `ssh://git@github.com/...` alakban indul. A hiba `Host key verification failed`, ami hiányzó SSH kulcsnak látszik, ezért mindkét prefixre kell `insteadOf` (`--add`).
+
+- **2026-09-04, PR-review alatt a PR változik alattad:** az elemzés elején lekérdezett threadek üresek voltak, mire a findingokat felírtam, egy másik reviewer már feltette ugyanazt a két legsúlyosabbat, és a duplikátumot törölnöm kellett. A kommentek felküldése előtt közvetlenül kérdezd le újra a threadeket, ne az elemzés elején látott állapotra hagyatkozz.
+
 ## Windows & PowerShell
 
 - **2026-08-14, ékezetes `.ps1` csak UTF-8 BOM-mal:** a Windows PowerShell 5.1 a BOM nélküli scriptet ANSI-ként olvassa, így az ékezetes stringek mojibake-ké válnak, és a parse is elhasalhat („Missing ')' in method call"). Átirányított stdout-nál a `[Console]::OutputEncoding` sem érvényesül, írj bájtokat a `[System.Console]::OpenStandardOutput()`-ra.
@@ -139,3 +143,5 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   `select(.conclusion=="success")` `function not defined: success/0`-ra fut, a `+`-szal fűzött kifejezés pedig
   `accepts 1 arg(s), received 3`-ra, mert az idézőjelek és a szóközök elvesznek. Szűrésre a natív flaget használd
   (`gh run list --status success`), összetett formázásra `ConvertFrom-Json`-t, a `--jq` maradjon `.[] | [...] | @tsv`.
+- **2026-09-04, terraform `for_each` cím PowerShellből natív exe-nek:** a `'aws_dynamodb_table.this["X"]'` single-quoted forma exit 1-gyel elhasal, mert a PowerShell kiszedi a belső dupla idézőjeleket, `'...this[\"X\"]'` kell. A `state rm` előtt `state list <cím>`-mel tesztelhető, az read-only.
+- **2026-09-04, ADO PR-komment ékezete PowerShellből: a `ConvertTo-Json` nem escape-el, az ASCII-írás pedig kérdőjelre cserél.** A PS 5.1 `ConvertTo-Json` a nem-ASCII karaktereket változatlanul hagyja, így a `[Text.Encoding]::ASCII`-vel kiírt `--in-file` JSON-ban minden ékezet kérdőjel lesz, és a "nulla non-ASCII bájt a fájlban" ellenőrzés emiatt hamis biztonságot ad. A JSON stringet magad escape-eld `\uXXXX`-re, mielőtt ASCII-ként írod. Visszaellenőrizni csak külső forrásból lehet: az `az devops invoke` visszaolvasása `--out-file`-lal és `PYTHONUTF8=1`-gyel is kérdőjelet ad, tehát nem bizonyíték, a böngészőben megnyitott PR viszont igen.

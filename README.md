@@ -94,6 +94,12 @@ claude-rules/
       azure-devops/
         SKILL.md
         references/azure-devops-cli.md
+      powershell/
+        SKILL.md
+        references/powershell-windows.md
+      github/
+        SKILL.md
+        references/github-cli.md
       local-code-review/
         SKILL.md
         references/local-code-review.md
@@ -119,7 +125,7 @@ macOS/Linux:
 ln -s ~/source/repos/claude-rules/.claude/skills ~/.claude/skills
 ```
 
-After linking, `dotnet`, `typescript`, `terraform`, `aws`, `jira`, `azure-devops`, `local-code-review`, and `devils-advocate-review` trigger from any project.
+After linking, `dotnet`, `typescript`, `terraform`, `aws`, `jira`, `azure-devops`, `powershell`, `github`, `local-code-review`, and `devils-advocate-review` trigger from any project.
 
 ## Making the lessons collection automatic (one-time per machine)
 
@@ -210,4 +216,6 @@ A skill's `SKILL.md` should stay a thin dispatcher (trigger + an index of which 
 - `.claude/rules/lessons-learned.md` and `.claude/lessons/` were added because this repo is wired into *every* local session, which makes it the only store where knowledge can cross session and project boundaries. It is deliberately separate from the rules: a rule is normative ("always do X"), a lesson is an observation that has not earned that status yet, and the machine-specific half (`workspaces/<COMPUTERNAME>.md`) must not be eagerly imported, because those facts are false on any other box.
 - `.claude/hooks/` exists because the lessons collection had to be **automatic**, and instructions alone cannot do that: a rule is only followed if the model happens to act on it, while a hook is executed by the harness every time. The `SessionStart` half also removes the per-session machine-name lookup and `Read`, so the automation is cheaper in tokens than the manual protocol it replaces.
 - `.claude/skills/jira/` was added as a new skill because Jira issue conventions (which custom field carries the Acceptance Criteria, what shape `Account` and `Team` expect, what the MCP cannot do) did not fit `azure-devops`, Jira and Azure DevOps Boards are separate systems, and are too project-specific and detailed for a core rule.
+- `.claude/skills/powershell/` was added as a new skill because `.claude/lessons/general.md` had grown to 72 entries against the ~40 the `lessons-learned` rule allows, and 21 of them were Windows/PowerShell traps. They are **eagerly imported**, so every session in every project paid for them, while the knowledge itself is task-specific: it only matters when something actually calls a native CLI from PowerShell or writes a file. Promoting the hardened half into a skill and deleting the lesson entries is exactly the path `lessons-learned.md` prescribes. Git and Bash were deliberately **not** moved: `git-conventions`, `git-identity` and `shell-path-conversion` stay core because their failure modes are a bypassed permission or a false negative acted on as evidence, and a skill trigger is a model decision, not a guarantee.
+- `.claude/skills/github/` was added as a new skill because the `gh` CLI has its own failure surface that no existing rule covered: the push **403** that is an active-account problem rather than a scope one, the empty org listing that looks like missing access, and the `!` prefixed credential helper whose shell can fail so that a working token reports `could not read Password`. `git-identity` (core) answers *which* account should push; this skill answers what to do when the push still does not go through. It follows the `azure-devops` skill's shape, which covers the same problem class for the other forge.
 - Treat the rule files as the single source of truth; do not duplicate the content in other places.

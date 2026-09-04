@@ -125,7 +125,7 @@ Working on `main` moves all the risk to the push: there is no PR to catch a mist
 ## Push policy
 
 - **Push only with explicit permission.** Never run `git push` (or any equivalent: sync, upload, publish, push to remote) on your own initiative. **Always ask first**, unless the user has authorized it in the current prompt, in that case you may push.
-- **Force-push is especially destructive.** `git push --force`, `git push -f`, or any forced update to a remote branch still requires **explicit** permission, and you must prefer a safer alternative (e.g. `--force-with-lease`) when a force update is genuinely needed.
+- **Force-push is especially destructive, and the only permitted form is `--force-with-lease`.** A forced update to a remote branch still requires **explicit** permission, and once that permission is given, `git push --force-with-lease` is the only command you run. Plain `git push --force` and `git push -f` are never used, not even when the user words the request as "force push": the lease is what makes the push fail instead of silently deleting a commit that landed after your last fetch. A rejected lease is the guard doing its job, re-fetch and integrate, never drop to `--force` to get past it.
 - **Never overwrite what is already on the remote.** If the remote branch carries commits the local one does not (a push from another machine, another session, or someone else), the answer is to **integrate**, never to overwrite: `git fetch`, then rebase onto `origin/<branch>`, then a plain `git push`. A force update deletes those commits from the remote, and on a repo worked directly on `main` there is no PR or second branch to recover them from.
 - **A rejected push is information, not an obstacle.** `! [rejected] ... (fetch first)` means the remote moved ahead. Rebase and push again; do not reach for `--force` or `--force-with-lease` to make the message disappear. Even `--force-with-lease`, the safer form, is only for a branch whose history you deliberately rewrote, and still needs explicit permission.
 - Default to keeping work local; treat pushing to remote as a state-changing, outward-facing action that the user must approve. The same permission model applies to `terraform`/`terragrunt`/`tofu apply` (see `terraform-terragrunt.md`).
@@ -141,6 +141,11 @@ I've committed the change locally. Do you want me to push it to the remote?
 git fetch origin
 git rebase origin/main
 git push
+```
+
+```bash
+# Szándékosan átírt history, engedéllyel: kizárólag lease-szel.
+git push --force-with-lease origin main
 ```
 
 ### ❌ DON'T

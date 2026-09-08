@@ -23,11 +23,20 @@ A Task is attached to an Epic with the **`parent`** field (`parent: "NX-39412"`)
 
 ### Acceptance Criteria: `customfield_10124`
 
-A dedicated **textarea** custom field that expects **ADF** (`{"type":"doc","version":1,"content":[...]}`), normally a single `bulletList`. This is where the team looks for criteria.
+A dedicated **textarea** custom field that expects **ADF** (`{"type":"doc","version":1,"content":[...]}`). This is where the team looks for criteria.
+
+**The house standard is a checkbox list**, an ADF `taskList` of `taskItem`s, never a `bulletList`. Jira renders these as real checkboxes with an `n/m` progress counter, so the executor ticks the criteria off as the work lands, and anyone can see how far the ticket got without reading it. A `bulletList` looks almost the same in the editor and carries none of that.
 
 - **Do not** put a `## Definition of Done` section in the description instead. The house pattern is: description = context + task, AC field = the verifiable criteria.
 - Write criteria as **observable outcomes**, not as a restatement of the work: "X nem létezik", "a plan üres diffet ad", "írásos döntés van róla", not "töröljük X-et".
 - Include the negative criteria too: what must **still** exist after the change. In a cleanup ticket that is the most valuable line.
+- New criteria go in as `state: "TODO"`. Converting an existing ticket is a **format** change, so leave every box unticked even on a closed ticket; whether the criteria were met is the owner's call, not the converter's.
+
+Two structural traps, and both fail silently rather than with an error: a `taskItem` takes **inline** content directly (a `text` node), it does **not** wrap it in a `paragraph` the way a `listItem` does, and the `taskList` plus every `taskItem` needs a non-empty `localId`.
+
+The field also rejects `contentFormat: "markdown"` outright (`Operation value must be an Atlassian Document`), so the `- [ ]` markdown shorthand is not a shortcut here. Send ADF.
+
+#### ✅ DO
 
 ```json
 {
@@ -35,14 +44,28 @@ A dedicated **textarea** custom field that expects **ADF** (`{"type":"doc","vers
     "type": "doc",
     "version": 1,
     "content": [
-      { "type": "bulletList", "content": [
-        { "type": "listItem", "content": [
-          { "type": "paragraph", "content": [ { "type": "text", "text": "A shootout ECR repository nem létezik egyik accountban sem." } ] }
-        ] }
+      { "type": "taskList", "attrs": { "localId": "ac-list" }, "content": [
+        { "type": "taskItem", "attrs": { "localId": "ac-1", "state": "TODO" },
+          "content": [ { "type": "text", "text": "A shootout ECR repository nem létezik egyik accountban sem." } ] }
       ] }
     ]
   }
 }
+```
+
+#### ❌ DON'T
+
+```json
+// Bullet list: no checkbox, no progress counter.
+{ "type": "bulletList", "content": [
+  { "type": "listItem", "content": [
+    { "type": "paragraph", "content": [ { "type": "text", "text": "..." } ] } ] } ] }
+```
+
+```json
+// A paragraph inside a taskItem: the listItem shape does not carry over.
+{ "type": "taskItem", "attrs": { "localId": "ac-1", "state": "TODO" },
+  "content": [ { "type": "paragraph", "content": [ { "type": "text", "text": "..." } ] } ] }
 ```
 
 Accented characters survive the MCP call as-is; no escaping needed beyond normal JSON.
@@ -90,8 +113,8 @@ For a finding-driven epic (audit, migration, cleanup sweep), group by **theme**,
 ## ✅ DO
 
 ```text
-Lekérem NX-39368-at, látom hogy az AC a customfield_10124-ben ADF bullet-listaként van,
-és ugyanígy töltöm ki az új ticketeket.
+Lekérem NX-39373-at, látom hogy az AC a customfield_10124-ben ADF taskList, vagyis
+checkboxos lista, és ugyanígy töltöm ki az új ticketeket.
 ```
 
 ## ❌ DON'T

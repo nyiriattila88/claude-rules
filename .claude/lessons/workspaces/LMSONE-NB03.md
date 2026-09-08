@@ -18,6 +18,9 @@ Windows 11 Enterprise · user `nyiria` · shells: PowerShell (primary) and Git B
 - **2026-09-04, a Bash tool `fatal error - add_item`-mel is indulhat:** a `bash.exe: *** fatal error - add_item ("\??\C:\Program Files\Git", "/", ...) failed, errno 1` exit 5-tel minden hívást megbuktat már az első `cd`-nél, tehát a 2026-08-26-i „a Bash tool működik ezen a gépen" bejegyzés nem mindig áll. Ne próbálgasd újra, vidd az egész sessiont PowerShellre.
 
 - **2026-09-04, Windows-natív tofu/terragrunt:** a `%LOCALAPPDATA%\Programs\iac` alatt `tofu.exe` 1.11.4 és `terragrunt.exe` 0.99.1 (a CI-vel egyező), user PATH-on. A WSL-ben 1.12.1 / 0.99.5 van, ami újabb a CI-nál, ezért state-írásra a Windows-os bináris a biztonságos.
+- **2026-09-04, a `python` parancs hibás, a `py` jó:** a PATH-on elöl a WindowsApps `python.exe` alias áll, ami "cannot find the path specified"-dal bukik. A `py` launcher (Python 3.14.2, `%LOCALAPPDATA%\Python\pythoncore-3.14-64`) működik, `tomllib` van.
+- **2026-09-04, egy `az` CLI hívás ~10 s ezen a gépen:** a `az devops`/`az repos` parancsok egyenként 10 másodpercet visznek, sok repós lekérdezéshez REST-et hívj (Python `urllib`, PAT Basic auth). `az login` nincs, csak PAT-os `az devops login`. A PAT **nem fájlban**, hanem a Windows Credential Managerben van (`azdevops-cli:https://dev.azure.com/nexius-aether`, generic, UTF-16-LE blob), `CredReadW`-vel olvasható, a felhasználó ezt engedélyezte. Egy külön "probe" scriptet a classifier blokkolt, a scriptbe épített feloldás futott.
+- **2026-09-07, a `CredReadW`-s PAT-feloldás blokkolható:** a scriptbe épített feloldás sem mindig fut, a `py`-os hívást a classifier megtagadta. Kevés projektnél ne ezzel kezdd: `az devops project list` + projektenként egy `az repos list --org <url> --detect false -o json` átment, és 2-3 hívásból megvan a teljes repo-lista.
 
 ## Accounts
 

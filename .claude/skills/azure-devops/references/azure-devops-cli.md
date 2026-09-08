@@ -917,6 +917,24 @@ Hasznos szűrők a `runs list`-en: `--branch`, `--result failed`, `--status comp
 az boards query --wiql "select [System.Id], [System.Title] from workitems where [System.State] = 'Active'" -o table
 ```
 
+**YAML-változás validálása push előtt.** A `preview` endpoint lefordítja a pipeline-t **futtatás nélkül**, és
+`yamlOverride`-ban elfogadja a még nem commitolt tartalmat, tehát egy template-migráció vagy egy `ref`-emelés
+bizonyítható anélkül, hogy a branch felkerülne a remote-ra:
+
+```bash
+py -c "import json;open('b.json','w',encoding='ascii').write(json.dumps({'previewRun':True,'yamlOverride':open('.azure-pipelines/x.yml',encoding='utf-8').read()},ensure_ascii=True))"
+az devops invoke --area pipelines --resource preview --route-parameters project=<proj> pipelineId=<id> \
+  --http-method POST --in-file b.json --api-version 7.1-preview -o json
+```
+
+A `finalYaml` a lefordított pipeline, a hiba pedig megnevezi a nem talált template-et **és a tagot**, amiben
+kereste. A body ASCII-ként íródik (`ensure_ascii=True`), különben a YAML emojijai elvesznek a wrapperen.
+
+**A korlát: csak a belépési fájlt írja felül.** A `- template:`-pel hivatkozott lokális fájlokat a **remote
+branchről** olvassa, tehát egy még nem pusholt lokális template-tel a preview elhasal, és a hiba a shared
+repóra mutat, nem a hiányzó pushra. Push után `yamlOverride` helyett
+`resources.repositories.self.refName: refs/heads/<branch>` a helyes forma, az a branch valódi tartalmát fordítja.
+
 ## REST fallback: `az devops invoke`
 
 A CLI nem fedi le a teljes Azure DevOps REST API-t. Ami hiányzik (build **log**, timeline, teszt-eredmény, policy evaluation), azt az `az devops invoke` éri el:

@@ -122,6 +122,10 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   tartalmaz. Az `ls` kilistázza őket, a tiszta névre nyitás viszont `FileNotFoundError`, tehát a feldolgozás
   **csendben nulla adatból** dolgozik, és minden vizsgálat üresen jön vissza. Írás `newline="\n"`-nel, vagy
   `tr -d` a listán.
+- **2026-09-08, Windows-útvonal építése bashben: a `"$DIR\\$file"` nem bővíti a változót.** A `\\$`
+  szekvenciát a bash escape-elt dollárnak veszi, így literális `$file` megy tovább, és a hibaüzenet a
+  fájlra panaszkodik (`--in-file does not point to a valid file location`), nem a quotingra. Kilenc
+  `az devops invoke` hívás futott el rajta egy loopban. Helyes forma: `p="$DIR"'\'"$file"`.
 ## Windows & PowerShell
 
 - **2026-08-25, „az MSIX app nem indul el" jellemzően ACL-repair hurok, nem crash:** ha nincs crash dump, az idővonalat a `Microsoft-Windows-TWinUI/Operational` 1621-es (aktiváció) és az `AppXDeploymentServer/Operational` 603/400-as eventjei adják. Ha minden aktivációnál `RepairAppRegistrationOption` + `ForceTargetApplicationShutdownOption` fut, a Windows javít és közben lelövi az induló appot, a megoldás a csomag teljes újratelepítése (`RepairPackageOperation`).

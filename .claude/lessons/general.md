@@ -107,6 +107,15 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-04, PR-review alatt a PR változik alattad:** az elemzés elején lekérdezett threadek üresek voltak, mire a findingokat felírtam, egy másik reviewer már feltette ugyanazt a két legsúlyosabbat, és a duplikátumot törölnöm kellett. A kommentek felküldése előtt közvetlenül kérdezd le újra a threadeket, ne az elemzés elején látott állapotra hagyatkozz.
 - **2026-09-04, a classifier a szóhasználat miatt ártalmatlan scriptet is blokkol:** három PowerShell-futás bukott `Remove-Item on system path ... is blocked`-dal, pedig egyik sem törölt fájlt, csak egy szöveges tartalomban említette a cmdletet, egy `RemoveRange` listaműveletet hívott, illetve egy `drop` nevű változó mellett szerepelt egy `/` string. Ne ismételd a parancsot: nevezd át a változót, kerüld a törlés-szemantikájú szavakat, vagy írj a `Write` toollal.
 
+- **2026-09-08, a „tegnaptól máig" ablakot ne a találatok legfrissebb dátumából vezesd le:** egy `minTime`-mal
+  indított ADO build-lekérdezés legújabb találata nyolc napos volt, én mégis „mai"-ként olvastam, így nyolc napos
+  hibákat jelentettem tegnapiként. Az ablakot explicit dátumból számold, és ha a legfrissebb találat jócskán
+  régebbi a mainál, az önmagában jelzés, nem alapadat.
+- **2026-09-08, Pythonból írt id-lista CR-t hagy a fájlnévben Windowson:** a text-módú `write(str(id) + "\n")`
+  valójában `\r\n`-t ír, a bash `while read -r ID` `id\r`-t ad, és az így létrehozott fájlok neve `U+F00D`-t
+  tartalmaz. Az `ls` kilistázza őket, a tiszta névre nyitás viszont `FileNotFoundError`, tehát a feldolgozás
+  **csendben nulla adatból** dolgozik, és minden vizsgálat üresen jön vissza. Írás `newline="\n"`-nel, vagy
+  `tr -d` a listán.
 ## Windows & PowerShell
 
 - **2026-08-25, „az MSIX app nem indul el" jellemzően ACL-repair hurok, nem crash:** ha nincs crash dump, az idővonalat a `Microsoft-Windows-TWinUI/Operational` 1621-es (aktiváció) és az `AppXDeploymentServer/Operational` 603/400-as eventjei adják. Ha minden aktivációnál `RepairAppRegistrationOption` + `ForceTargetApplicationShutdownOption` fut, a Windows javít és közben lelövi az induló appot, a megoldás a csomag teljes újratelepítése (`RepairPackageOperation`).

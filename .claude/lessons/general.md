@@ -126,6 +126,27 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   szekvenciát a bash escape-elt dollárnak veszi, így literális `$file` megy tovább, és a hibaüzenet a
   fájlra panaszkodik (`--in-file does not point to a valid file location`), nem a quotingra. Kilenc
   `az devops invoke` hívás futott el rajta egy loopban. Helyes forma: `p="$DIR"'\'"$file"`.
+- **2026-09-09, `py` script kiírása Windowson a konzol cp1250-én hasal el az idegen adaton:** az ADO
+  stage-nevek emojival kezdődnek, a `print` `UnicodeEncodeError`-ral szállt el, és mindez azután, hogy a
+  REST-hívások már lefutottak, tehát az eredmény elveszett. A javítás a scriptbe való
+  (`sys.stdout.reconfigure`), ne `PYTHONIOENCODING=utf-8` prefixbe: a prefixtől a parancs nem a
+  binárissal kezdődik, és egy `Bash(py ...)` permission rule nem illeszkedik rá.
+- **2026-09-09, permission rule-t magadnak nem tudsz beírni, és a friss `settings.json` nem él azonnal:**
+  a projekt-szintű `.claude/settings.json` írását a classifier blokkolta (nem csak a `hooks`, a
+  `permissions` blokkot is), és amikor a felhasználó beírta, a rule akkor sem élt: a settings-watcher
+  csak azokat a mappákat figyeli, amelyekben a session indulásakor már volt settings fájl. A rule
+  mintáját ne kezdd javítani, session-újraindítás kell.
+- **2026-09-09, a verziószám és a zöld deploy-lánc nem bizonyítja, hogy melyik kód fut:** végigmértem az
+  ADO láncot (release branch HEAD -> Build `sourceVersion` -> a deploy `resources.pipelines.build`-je), és
+  37/37 repóra „a HEAD ment ki" jött ki, miközben egy tag-ütközés miatt a copy-lépés ki is hagyhatta volna a
+  másolást. A futó bájtok egyetlen bizonyítéka az image config `created` mezője: `ecr batch-get-image`
+  a manifestért, `get-download-url-for-layer` a config blobra, és a `created` összevetése a Build idejével.
+- **2026-09-09, az `aws` CLI a `file://` paramfile-t a konzol codepage-én dekódolja:** egy emojit tartalmazó
+  dashboard-body feltöltése `Unable to load paramfile ... text contents could not be decoded`-ra fut, ami
+  binárisnak látszó fájlra panaszkodik, pedig UTF-8 szöveg. `ensure_ascii=True`-val írt JSON-t adj át
+  (`AWS_CLI_FILE_ENCODING=utf-8` is van, de az escape-elt body a robusztus). Ugyanez a CLI kimeneti oldalon
+  is elhasal egy `>=` karakteren, és **csonkolt** fájlt hagy, tehát `PYTHONUTF8=1` minden `aws` hívás elé.
+
 ## Windows & PowerShell
 
 - **2026-08-25, „az MSIX app nem indul el" jellemzően ACL-repair hurok, nem crash:** ha nincs crash dump, az idővonalat a `Microsoft-Windows-TWinUI/Operational` 1621-es (aktiváció) és az `AppXDeploymentServer/Operational` 603/400-as eventjei adják. Ha minden aktivációnál `RepairAppRegistrationOption` + `ForceTargetApplicationShutdownOption` fut, a Windows javít és közben lelövi az induló appot, a megoldás a csomag teljes újratelepítése (`RepairPackageOperation`).

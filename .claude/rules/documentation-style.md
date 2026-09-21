@@ -261,6 +261,43 @@ A dobás nem része a contractnak.
 Az elkapó ág csak egy újradobást tartalmaz, tehát elhagyható.
 ```
 
+### The trap: a term that has a natural Hungarian word
+
+The rule above is easy to keep where Hungarian has no word for the thing (`cold start`, `blue/green`,
+`chunk`), and easy to break where it does. That is the whole trap. The translation does not feel like a
+translation, it reads as ordinary prose, and a reviewer who speaks the language glides straight over it.
+
+**`contract` is the standing example.** Writing "szerződés" is natural Hungarian and nobody stumbles on
+it, yet it costs exactly what every other translated term costs: the code, the ADRs, the ticket and the
+chat stop sharing one word, and a search for `contract` no longer finds the paragraph that explains the
+contract. Write `contract` wherever the meaning is an interface others depend on, a shared package, a
+schema, a log field name, a key prefix, a table's attribute names. Hungarian inflection is expected and
+fine (`a contract`, `contractja`, `contractot`), the same as with every other adopted term.
+
+The Terraform `state` is the same case: "állapot" is a perfectly good word and still the wrong one.
+
+#### ✅ DO
+
+```text
+A job sor contractját a `render-jobs` csomag írja le: állapotnevek, attribútumnevek, feltételek.
+```
+
+```text
+A `logType` mező contract a kód és a dashboard között, az átnevezése kiüríti a panelokat.
+```
+
+#### ❌ DON'T
+
+```text
+(Magyarul jól hangzik, ettől még fordítás, és elvágja a kódot a róla szóló bekezdéstől:)
+A job sor szerződését a `render-jobs` csomag írja le.
+```
+
+```text
+(Ugyanez a csapda a Terraform state-nél:)
+A remote állapot S3-ban van, a lock pedig a DynamoDB táblában.
+```
+
 ## Targets
 
 - C# XML doc on types, methods, properties, fields, parameters.

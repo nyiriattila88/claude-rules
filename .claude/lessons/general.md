@@ -149,6 +149,27 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-09, a felhasználó által említett profil nem a hozzáférés felső határa:** egy PROD hibához dev
   (majd stg) profilt kaptam, és fél sessiont vitt az indirekt bizonyítás, pedig a prod read-only SSO role is
   működött. A célkörnyezetre egy `sts get-caller-identity` olcsóbb, mint a kerülőút.
+- **2026-09-14, a feature branchről lokálisan applyolt resource-t a következő mainline apply lebontja:** egy
+  bootstrap (valódi kulcsot tartó SecureString, CloudFront public key, key group) nyom nélkül eltűnt DEV-ből,
+  mert a deploy pipeline a `develop` configjával applyolt. A PR-leírás közben „already applied to DEV”-et állított.
+- **2026-09-16, CPU-kötött munka egy health check mögötti konténerben saját magát öli meg:** a webpack bundle-ölés percekre megfogta az API event loopját, a `/health` nem válaszolt, és az ECS kétszer is lecserélte a taskot a munka közepén, félbehagyott rekordot hagyva. A logban semmi nem árulja el, mert a tünet task-csere, nem hiba. Ilyen munka gyerekfolyamatba való, akkor is, ha a konténer amúgy bírná.
+
+- **2026-09-18, a komment nem védelem, a teszt az:** ugyanabban a fájlban ott állt, hogy a kód
+  és az IAM policy két felének egyeznie kell, és ettől még kihagytam egy SSM paramétert a
+  policyből. A konténer indulásnál AccessDeniedException-nel kilépett, a blue/green deploy
+  viszont **timeoutot** jelentett, nem jogosultsági hibát. Ahol két, különböző nyelvű fájlnak
+  egyeznie kell, oda teszt kell, ami a kettőt összeveti; a komment csak jó szándék.
+- **2026-09-18, mielőtt logot ígérsz, nézd meg a log-routingot:** egy háttérjob teljes menete
+  info szinten beszélt, a Fluent Bit viszont csak az error szintű és a `logType` szerint
+  címkézett sorokat küldte CloudWatch-ba, a többit egy másik backendbe. A CloudWatch üres volt,
+  ami úgy néz ki, mintha a job el sem indult volna.
+
+- **2026-09-18, egy óvatosból választott konstans mellé írd oda, honnan jön:** egy küszöböt
+  "deliberately conservative" alapon vettem fel, a mellette álló dokumentum viszont méréseket
+  rögzített, így úgy olvasódott, mintha a számot azok indokolnák. Nagyságrenddel a hivatalos
+  ajánlás és a saját mérésünk alatt volt, és csak egy 165 perces futás hozta elő. Ha egy
+  konstans nem mérésből vagy doksiból jön, azt a helyén mondd ki, különben a szomszédos
+  számok lesznek a hamis indoklása.
 
 ## Windows & PowerShell
 
@@ -171,3 +192,7 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-09, ADO pipeline definíció törlése előtt a retention lease-eket kell törölni:** a megtartott futások `keepForever` flagje mögött `build/retention/leases` bejegyzések állnak (branch policy és pipeline lease külön), ezek nélkül a definíció törlése elhasal. A lease-eket a `build`/`leases` resource DELETE-je viszi vesszős `ids=` listával, a törölt repót pedig a `git`/`recycleBinRepositories` resource kérdezi vissza, a `recycleBin` névre az `az devops invoke` félrevezetően „--resource and --api-version combination is not correct"-ot ad.
 - **2026-09-09, a `Get-Content -Raw` ANSI-ként olvas PowerShell 5.1-ben:** egy UTF-8 fájl így beolvasva, majd `Encoding.UTF8.GetBytes`-szal visszaírva dupla kódolást ad (`üres` helyett `ĂĽres`), a hívás pedig nem hibázik, csak a tartalom romlik el. Olvasásra `[System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)` a helyes forma, tehát a `Set-Content` ANSI-írása mellett az olvasási oldal is csapda. Ugyanitt: a `Set-Location` után a .NET statikus metódusok relatív útvonala még a régi könyvtárhoz oldódik fel, ezért ott absolute path kell.
 - **2026-09-11, ADO PR auto-complete: a `completionOptions`-only PATCH letörli a fegyverzést:** a `deleteSourceBranch` levétele két nappal korábban 73 PR-on csendben elvitte az `autoCompleteSetBy`-t, és a PR ugyanúgy nyitva állt, csak nem mergelt volna. Az `autoCompleteSetBy`-t és a teljes `completionOptions`-t mindig egy body-ban küldd, és az arming legyen az utolsó írás (publikálás után, ne előtte). Ugyanitt: a `false` értékek (`deleteSourceBranch`, `squashMerge`, `bypassPolicy`) **kimaradnak** a válaszból, tehát a hiányzó kulcs a kikapcsolt állapot bizonyítéka, nem hiányzó beállítás.
+- **2026-09-21, ADO cross-project repo resource: a hiányzó jog nem hibázik, hanem várakoztat:** egy `Backend/terraform-modules`-t hivatkozó Frontend deploy run 7 napig állt `inProgress`-ben, hibajel nélkül, miközben a társ-pipeline-ok mentek, mert azok egyenként fel voltak véve. A kapcsoló a `pipelinePermissions` `resourceType=repository` `allPipelines.authorized`, és a **fogyasztó** projekt scope-jában él, nem a repót birtoklóban. A PATCH-hez `--in-file` kell, a `--in-format` flag nem létezik az extensionben.
+- **2026-09-21, az ADO `commits` API `compareVersion`-je fordítva mér:** 37 release branch merge-ellenőrzése mind „N commit hiányzik"-kal jött vissza, pedig a targeten lévő, branchen nem lévő commitokat számolta. Az árulkodó jel a szabályos minta volt: mindenhol pontosan 1 hiányzó develop-commit, maga a merge commit. Ahead/behind kérdésre a `diffs/commits` `aheadCount` a helyes hívás.
+- **2026-09-21, ADO: a bypass-jog nem jár a Project Administrator szereppel:** a PR completion 403-at adott (`PR validation must succeed to update main`), holott a felhasználó mindkét projekt Project Administrators csoportjának tagja volt. Az admin szerep a beállítás megváltoztatására ad jogot, a „Bypass policies when completing pull requests" viszont külön Git-repository permission, és amíg nincs engedélyezve, a UI-ban meg sem jelenik az „Override branch policies" jelölőnégyzet.
+- **2026-09-21, az ADO `refs?filter=tags/` `peelTags=true` nélkül a tag objektum hash-ét adja:** 37 release branch törlés előtti ellenőrzése azt mondta, egyetlen branch HEAD-jén sincs tag, pedig mindegyiken volt. Az annotated tag `objectId`-je magát a tag objektumot azonosítja, a commit a `peeledObjectId`-ben van, és az csak `peelTags=true` mellett jön. Itt a biztonságos irányba tévedett, fordított logikájú ellenőrzésben viszont adatvesztéshez vezetne.

@@ -317,6 +317,11 @@ A remote állapot S3-ban van, a lock pedig a DynamoDB táblában.
 Az `apps/` alatt az van, amiből artefaktum lesz: image vagy S3 bundle.
 ```
 
+```text
+(Rendes magyar szó, és pont ezért siklik át rajta az olvasó, miközben a fájl neve AGENTS.md:)
+# Utasítások AI ügynököknek
+```
+
 ## Targets
 
 - C# XML doc on types, methods, properties, fields, parameters.

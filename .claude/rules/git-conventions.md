@@ -219,6 +219,47 @@ A PR **comment** is not the PR **description**. The description is English becau
 - **No AI marker on the comment.** The commit rule applies here too: no `🤖 AI-generated review` banner, no `Made-with`, no assistant attribution. If a project's own instructions demand such a disclaimer, that conflict is the user's to resolve, surface it, don't add the marker on your own initiative.
 - **One or two sentences per thread**, anchored to the line it is about. The long analysis belongs in the chat verdict; a PR thread that needs three paragraphs is usually two threads.
 
+### Write it plainly: the author has to act on it, not admire it
+
+A review comment is read once, by someone who wants to know **what is wrong and what to do about it**.
+Everything that does not serve those two questions makes it slower to read, and a comment nobody
+finishes is a comment nobody acts on. The failure mode is not rudeness, it is density: a correct,
+well-researched finding buried in subordinate clauses, self-quotation and evidence nobody asked for.
+
+- **Lead with the problem in one plain sentence.** The reader decides from that sentence whether this
+  concerns them. Put it first, before the evidence, the history and the reasoning.
+- **Short sentences, one thought each.** Split anything with two commas and a "which"; it almost always
+  wants to be two sentences.
+- **Say what to do.** A finding without a next step leaves the author guessing what would satisfy you.
+- **Cut the proof to what is load-bearing.** One measurement or one file reference carries a finding.
+  A second one is reassurance for the writer, not information for the reader.
+- **Don't narrate the investigation.** How you found it, which commit you diffed, what you ruled out:
+  none of that changes what the author has to do.
+- **Don't quote the code back at them.** They wrote it. Name the file and the line, and say what is wrong.
+
+The measure is not word count, it is whether the author can restate the finding after reading it once.
+A long comment can pass that test and a short one can fail it, but in practice length is where it breaks.
+
+#### ✅ DO
+
+```text
+A `Publish`-ból kikerült a null-guard, és `Convert(result!)` került a helyére. Ha a rekord törlődik
+a retrieve és az update között, ez NRE lesz. A `Save` ugyanezt még 404-gyel kezeli.
+```
+
+#### ❌ DON'T
+
+```text
+(Ugyanaz a finding, de a lényeg a harmadik mellékmondatban van, és az olvasónak végig kell
+bogarásznia a nyomozás menetét, mire eljut odáig, hogy mit kellene csinálnia:)
+
+A `c6cf797` "Remove unnecessary code" commit, amely a 27. iteráció óta érkezett, két korábban
+elfogadott javítást is visszavon, és ez a commit-üzenetből nem látszik: a `56af038` ("Answer a
+write that found nothing with the 404 it is") beletette az `if (result == null) return
+NotFound();` sort, a `c6cf797` pedig kivette, a záró sor most `converterService.Convert(result!,
+...)`, miközben az eset, amire a guard való, nem szűnt meg...
+```
+
 ### ✅ DO
 
 ```text

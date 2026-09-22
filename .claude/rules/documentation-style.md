@@ -276,6 +276,16 @@ fine (`a contract`, `contractja`, `contractot`), the same as with every other ad
 
 The Terraform `state` is the same case: "állapot" is a perfectly good word and still the wrong one.
 
+`artifact` is the third: "artefaktum" reads as educated Hungarian, and it is a calque. A build output,
+a container image, an S3 bundle is an artifact in every pipeline, every log and every ticket, so the
+prose that describes them says `artifact` too, with Hungarian inflection (`artifactot`, `artifactok`).
+
+`agent` is the fourth, and the easiest one to miss, because "ügynök" is not a calque but an ordinary
+Hungarian word with a meaning of its own. Everything around it is spelled `agent`: the `AGENTS.md` the
+paragraph describes, the subagent, the CI build agent, the Datadog agent. A document titled "Utasítások
+AI ügynököknek" therefore shares no word with its own filename. Write `agent`, inflected
+(`agentnek`, `agentek`, `agent-utasítás`).
+
 #### ✅ DO
 
 ```text
@@ -284,6 +294,10 @@ A job sor contractját a `render-jobs` csomag írja le: állapotnevek, attribút
 
 ```text
 A `logType` mező contract a kód és a dashboard között, az átnevezése kiüríti a panelokat.
+```
+
+```text
+Az `apps/` alatt az van, amiből artifact lesz: image vagy S3 bundle.
 ```
 
 #### ❌ DON'T
@@ -296,6 +310,11 @@ A job sor szerződését a `render-jobs` csomag írja le.
 ```text
 (Ugyanez a csapda a Terraform state-nél:)
 A remote állapot S3-ban van, a lock pedig a DynamoDB táblában.
+```
+
+```text
+(Művelt magyarnak hangzik, ettől még tükörfordítás:)
+Az `apps/` alatt az van, amiből artefaktum lesz: image vagy S3 bundle.
 ```
 
 ## Targets

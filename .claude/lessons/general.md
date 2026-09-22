@@ -171,6 +171,26 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
   konstans nem mérésből vagy doksiból jön, azt a helyén mondd ki, különben a szomszédos
   számok lesznek a hamis indoklása.
 
+- **2026-09-21, a nulla CloudFront usage-díj nem azt jelenti, hogy nincs forgalom:** a Cost Explorer
+  havi $0,01-ot adott az „Amazon CloudFront" service-re, miközben 25 TB/hó ment ki, mert a distribúció
+  flat-rate planen ül, és az külön service néven („CloudFront Flat-Rate Plans") számlázódik. A
+  plan-tagságot sem a `cloudfront` API adja (a distribúció leírásában nincs plan mező), hanem az
+  `aws pricing-plan-manager list-subscriptions`.
+
+- **2026-09-22, egy app funkciójának mechanizmusát a bundle dönti el, nem a rendszer képessége:** a Claude Desktop felolvasójánál a gépre telepített magyar Windows TTS hang (OneCore) irrelevánsnak
+  bizonyult, mert az `app.asar`-ban nulla `speechSynthesis`/`getVoices` találat van, tehát szerver-oldali
+  TTS megy. A hiányzó API-hívás a bizonyíték, nem a meglévő rendszer-képesség.
+
+- **2026-09-22, egy korábban beolvasott útvonal eltűnése commit, nem elgépelés:** két üzenetem között a
+  repóra érkezett egy mappa-átszervező commit, a `packages/` megszűnt, és a `sed` `No such file or
+  directory`-ja rossz cwd-nek vagy path-quotingnak látszott, ezért abszolút úttal próbáltam újra. Ha egy
+  path korábban működött és most nem, előbb `git log -1` és `ls`, és a már kiadott magyarázatot javítsd.
+
+- **2026-09-22, `pnpm -r` zöld nullával, ha a workspace glob nem illeszkedik:** a csomagok `apps/` és `packages/` alá kerültek, a `pnpm-workspace.yaml` még `src/*`-ot írt, és a gyökér `pnpm run typecheck` és `pnpm test` exit 0-val `No projects matched the filters`-t adott, tehát semmit nem ellenőrzött. A `Done` és `Test Files` sorokra szűrő grep üres kimenetet adott, amit kis híján tisztának olvastam. Zöld `pnpm -r` futásnál a projektlistát nézd, ne az exit kódot.
+- **2026-09-22, ADO PR-komment ékezet-ellenőrzése: a PowerShell a visszaolvasás közben rontja el.** Az `az devops invoke` kimenetét a PowerShell már beolvasáskor `U+FFFD`-re cseréli, így a fájlba írt kimenet cp1250-dekódolása egy **ép** kommentet mutat romlottnak (3643 vs 3259 karakter). A karakterszám-egyezés sem bizonyíték, mert az `U+FFFD` csere hossztartó. Bájthű ellenőrzés: a hívás a **Git Bash** toolból, nyers `>` átirányítással fájlba, majd cp1250 dekódolás, és a `WARNING: Unable to encode` hiánya az üres stderrben.
+- **2026-09-22, az ADO `commitsbatch` és `commits` API `compareVersion`-je némán üres listát ad:** két különböző hívásformával is 0 commit jött vissza 41 repóra, hiba nélkül, miközben a `diffs/commits` `aheadCount`-ja 1 és 89 közötti értékeket mutatott ugyanazokra. Az üres lista itt „nincs változás"-nak látszik, ami pont az ellenkezője a valóságnak. Ami működik: `commits` a `searchCriteria.itemVersion` + `searchCriteria.$top` párossal, majd a listát a base commit sha-jánál elvágni.
+- **2026-09-22, a session vége megöli a `run_in_background` folyamatot, és a félkész állapot nem látszik a kimenetből:** egy több fázisú kiadó script a fázis 1 után (7 repo kivágva) a fázis 2 előtt szállt el, az output fájl pedig **üresen** maradt, mert a Python pufferelt, tehát a `cat` sem árulta el. Több tíz perces, állapotot változtató munkát ne bízz a session élettartamára: bontsd fázisokra, és a részeredményt a **cél-rendszerből** kérdezd vissza, ne a folyamat kimenetéből.
+
 ## Windows & PowerShell
 
 - **2026-08-25, „az MSIX app nem indul el" jellemzően ACL-repair hurok, nem crash:** ha nincs crash dump, az idővonalat a `Microsoft-Windows-TWinUI/Operational` 1621-es (aktiváció) és az `AppXDeploymentServer/Operational` 603/400-as eventjei adják. Ha minden aktivációnál `RepairAppRegistrationOption` + `ForceTargetApplicationShutdownOption` fut, a Windows javít és közben lelövi az induló appot, a megoldás a csomag teljes újratelepítése (`RepairPackageOperation`).
@@ -196,3 +216,4 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-21, az ADO `commits` API `compareVersion`-je fordítva mér:** 37 release branch merge-ellenőrzése mind „N commit hiányzik"-kal jött vissza, pedig a targeten lévő, branchen nem lévő commitokat számolta. Az árulkodó jel a szabályos minta volt: mindenhol pontosan 1 hiányzó develop-commit, maga a merge commit. Ahead/behind kérdésre a `diffs/commits` `aheadCount` a helyes hívás.
 - **2026-09-21, ADO: a bypass-jog nem jár a Project Administrator szereppel:** a PR completion 403-at adott (`PR validation must succeed to update main`), holott a felhasználó mindkét projekt Project Administrators csoportjának tagja volt. Az admin szerep a beállítás megváltoztatására ad jogot, a „Bypass policies when completing pull requests" viszont külön Git-repository permission, és amíg nincs engedélyezve, a UI-ban meg sem jelenik az „Override branch policies" jelölőnégyzet.
 - **2026-09-21, az ADO `refs?filter=tags/` `peelTags=true` nélkül a tag objektum hash-ét adja:** 37 release branch törlés előtti ellenőrzése azt mondta, egyetlen branch HEAD-jén sincs tag, pedig mindegyiken volt. Az annotated tag `objectId`-je magát a tag objektumot azonosítja, a commit a `peeledObjectId`-ben van, és az csak `peelTags=true` mellett jön. Itt a biztonságos irányba tévedett, fordított logikájú ellenőrzésben viszont adatvesztéshez vezetne.
+- **2026-09-21, "használatlan resource" sweep: a lokális working tree ága félrevezet:** a repo-sweep grepje azon az ágon futott, amire a klón épp ki volt checkoutolva (egy feature branchen), nem a default branchen, és egy másik repo találata is csak egy régi POC-ágról jött. `git fetch --prune`, majd `git grep <minta> $(git for-each-ref refs/remotes/origin)`, és a találat mellé mindig írd oda az ágat.

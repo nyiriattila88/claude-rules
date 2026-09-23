@@ -194,6 +194,9 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-23, transcriptet olvasó hook csak nyers JSON-szerkezetre horgonyozhat:** a session saját szövege (tesztparancs, válasz) is a JSONL-be kerül, így egy tesztben szereplő `<command-name>/aws</command-name>` valódi slash-hívásnak számított. String-tartalomban az idézőjel mindig escape-elt, ezért a nyers `"content":"` vagy `"name":"Skill"` előtagot szöveg nem tudja hamisítani.
 - **2026-09-23, API Gateway REST: az integration `id`-ja nem változik a `uri`-val:** az id `agi-<api>-<resource>-<method>` (provider forrás), így az id-kat hash-elő deployment `triggers` egy Lambda alias-átkötésnél nem redeployol, a stage a régi integrationt szolgálja, és ha a permission közben átkerül az aliasra, a hívás 500-at ad. A hash-be az integration `uri`-ja vagy a teljes resource `jsonencode`-ja kell.
 - **2026-09-23, a működő `aws` CLI nem bizonyítja, hogy egy SDK-alapú eszköz is hozzáfér:** lejárt SSO access token mellett a CLI még a cache-elt role-credentialjéből él, a `mcp-proxy-for-aws` botocore-ja viszont frissítené a tokent, és `TokenRetrievalError`-ral áll meg (MCP-ben `-32602` és üres toollista). SDK-os eszköz credential-hibájánál előbb `aws sso login`, a `sts get-caller-identity` sikere itt nem jel.
+- **2026-09-23, CloudWatch „no data" ott, ahol 0 kellene:** az ALB és a log metric filterek esemény nélküli periódusra
+  nem publikálnak adatpontot, a widget üres. A `FILL(m, 0)` akkor is nullát ad, ha a metrikának egyetlen pontja sincs (a `PERIOD()`
+  skalár, az osztás is marad), log panelen a `filter` helyett `stats sum(feltétel)` kell. Latenciát ne tölts ki nullával.
 
 ## Windows & PowerShell
 

@@ -51,6 +51,8 @@ claude-rules/
       post-tool-use-skill-marker.ps1
       pre-tool-use-official-skills.ps1
       settings.hooks.example.json
+    mcp/                           # MCP server launchers (wired per machine)
+      ado-mcp.ps1
     skills/                        # domain, on-demand
       dotnet/
         SKILL.md
@@ -144,6 +146,17 @@ Two more hooks in `.claude/hooks/` make skill loading visible and, for AWS, mand
 
 - **`post-tool-use-skill-marker.ps1`** on `PostToolUse` for the `Skill` tool, shows every load as a harness message, `Skill betöltve: <name> (saját|telepített)`. `saját` means the `SKILL.md` is under a `.claude/skills/` folder. The prefix alone cannot tell, because the skills that ship with Claude Code are unprefixed too.
 - **`pre-tool-use-official-skills.ps1`** on `PreToolUse`, denies `aws` CLI calls (`Bash` and `PowerShell`, narrowed by `if`) and `aws-mcp` tool calls until the session transcript shows both `aws` and an `aws-core:` skill loaded. It reads the transcript itself, so it does not depend on the marker hook, and it counts a skill typed as `/name` too. A new domain is one more entry in its `$Domains` table plus the matching `if` filters in the settings.
+
+## MCP servers for Azure DevOps and AWS (one-time per machine)
+
+`.claude/mcp/ado-mcp.ps1` starts Microsoft's local Azure DevOps MCP server with the PAT that `az devops login` already keeps in Windows Credential Manager, so the token never lands in a config file. The remote ADO server would need a custom Entra app registration for Claude Code, the local one does not. For AWS, AWS's own `mcp-proxy-for-aws` signs every request with SigV4 from the SSO cache. The `aws-core` plugin's server runs unsigned when no default profile exists, so it only serves documentation.
+
+```bash
+claude mcp add --scope user --transport stdio ado -- powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '<repo>\.claude\mcp\ado-mcp.ps1' -Organization <org>
+MSYS_NO_PATHCONV=1 claude mcp add --scope user --transport stdio aws-mcp -- uvx mcp-proxy-for-aws@1.6.3 https://aws-mcp.eu-central-1.api.aws/mcp --region eu-central-1 --profile <read-only profiles> --metadata AWS_REGION=eu-central-1 --skip-auth
+```
+
+Both start slowly (tens of seconds), so `~/.claude/settings.json` sets `env.MCP_TIMEOUT` to `120000`. Read-only IAM roles keep the AWS server safe, `--read-only` would hide `aws___run_script`, the one tool that reaches the account. The ADO write tools sit under `permissions.ask`, and the official-skill gate covers `mcp__aws-mcp__*` too.
 
 Both scripts are **UTF-8 with BOM on purpose**: Windows PowerShell 5.1 reads a BOM-less script as ANSI and mangles every accented string. Keep the BOM when editing them.
 

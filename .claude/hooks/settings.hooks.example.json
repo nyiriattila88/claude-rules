@@ -91,7 +91,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_aws-core_aws-mcp__.*",
+        "matcher": "mcp__plugin_aws-core_aws-mcp__.*|mcp__aws-mcp__.*",
         "hooks": [
           {
             "type": "command",

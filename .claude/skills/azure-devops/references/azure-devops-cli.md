@@ -451,6 +451,47 @@ mert a pr create a --project-et eleve figyelmen kivul hagyja.)
 es a tobbi 2000 karakter csendben elveszett.)
 ```
 
+### PR review: a felhasználó legalább optional reviewer legyen (állandó engedély)
+
+Ha a felhasználó egy Azure DevOps PR review-ját kéri, a review részeként vedd fel **legalább optional reviewernek** a PR-ra. Ez állandó utasítás, ezért erre az egy mutáló lépésre nem kell külön engedélyt kérni. A kommentek feltöltése és a szavazás (`set-vote`) továbbra is engedélyköteles.
+
+- **Ha már rajta van, ne nyúlj hozzá.** Akár optional, akár required reviewerként szerepel, a listát hagyd, ahogy van. Required-ről soha ne fokozd le optionalra, és required-re se emeld magadtól.
+- **A csoport-reviewer nem számít.** Ha csak egy csoport (pl. `[Backend]\Backend Developers`) van a listán, a felhasználót személyesen is fel kell venni.
+- **Csak valódi PR-nál fut.** Lokális branch review-nál nincs PR, nincs mit felvenni.
+- **Jelezd a válaszban**, hogy felvetted, vagy hogy már rajta volt.
+
+A felhasználó ADO identitása `Nyiri.Attila@nexius.hu`, a `uniqueName` összevetése kis-nagybetű független. Az `az repos pr reviewer add` optional reviewert csinál (lásd az előző szekció 3. pontját), és a list válaszából a `false` értékű `isRequired` kimarad, tehát a hiányzó kulcs optional bejegyzést jelent.
+
+```bash
+# 1. Szerepel-e már személyesen a listán?
+az repos pr reviewer list --id <pr> --org https://dev.azure.com/<org> --detect false -o json
+# 2. Ha nem: felvétel optional reviewerként
+az repos pr reviewer add --id <pr> --reviewers Nyiri.Attila@nexius.hu --org https://dev.azure.com/<org> --detect false -o json
+# 3. Visszaellenőrzés ugyanazzal a list hívással
+```
+
+#### ✅ DO
+
+```text
+A 6103 review-jánál a reviewer-listán csak a [Backend]\Backend Developers csoport volt, te
+személyesen nem, ezért felvettelek optional reviewernek, és a listából visszaellenőriztem.
+```
+
+```text
+A 6104-en már required reviewer vagy, a reviewer-listához nem nyúltam.
+```
+
+#### ❌ DON'T
+
+```text
+(A csoport tagságát személyes reviewernek veszem, és kihagyom a felvételt.)
+```
+
+```text
+(Minden PR review előtt külön engedélyt kérek a felvételre, pedig erre állandó utasítás van,
+vagy a már required felhasználót magamtól optionalra írom át.)
+```
+
 ## Resource authorization: új pipeline semmit nem örököl
 
 Egy **frissen létrehozott** pipeline (és az is, amit egy `az pipelines update` átír) egyetlen protected resource-hoz sem kap jogot automatikusan: sem agent poolhoz, sem ADO Environmenthez. Ez akkor is így van, ha a repo társ-pipeline-jai (ugyanaz a pool, ugyanaz a YAML-template) rendben futnak, a jog **pipeline-onként** áll.

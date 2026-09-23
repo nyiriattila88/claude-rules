@@ -3,7 +3,7 @@ name: azure-devops
 description: >
   Azure DevOps CLI használati szabályok (Nyiri Attila szabálykészlete): `az devops`, `az repos`,
   `az pipelines`, `az boards`, `az artifacts`, illetve a `az devops invoke` REST fallback. Használd
-  MINDIG, amikor Azure DevOps-szal dolgozol: repo/PR lekérdezés vagy létrehozás, pipeline és build
+  MINDIG, amikor Azure DevOps-szal dolgozol: repo/PR lekérdezés, létrehozás vagy review, pipeline és build
   definition listázás, pipeline-futások (runs) és eredményük vizsgálata, build log / timeline
   elemzés, work item (boards) kezelés, service endpoint, wiki, artifact feed, scheduled (cron)
   trigger vizsgálata, vagy az Azure DevOps CLI telepítése/authentikációja (PAT). KRITIKUS és gyakran
@@ -14,7 +14,7 @@ description: >
   mutáló parancsok (pipeline indítás, PR create/complete, work item write) engedélykötelesek. Lassú
   feedback loopú koncepció (pl. cron trigger) validálásához szabad temporary change, jelöl →
   validál → **kötelező revert**. Trigger kulcsszavak: Azure DevOps, AzDO, ADO, dev.azure.com,
-  visualstudio.com, az devops, az repos, az pipelines, az boards, PAT, pull request, pipeline run,
+  visualstudio.com, az devops, az repos, az pipelines, az boards, PAT, pull request, PR review, pipeline run,
   build definition, work item, WIQL, scheduled trigger, cron, TFS, VSTS, "nem érem el az Azure
   DevOps-ot", "you need to run the login command", --org, --detect false.
 ---
@@ -30,6 +30,7 @@ A részletes szabály a `references/azure-devops-cli.md`-ben van. **Olvasd be a 
 - **Ne telepíts vaktában.** A "nincs Azure DevOps client" gyakori téves diagnózis: az `az` CLI + `azure-devops` extension gyakran már fent van, defaultokkal együtt. Előbb **ellenőrizz** (`az devops configure --list`, majd egy read-only smoke test), csak utána telepíts.
 - **PowerShell quoting trap.** Windowson az `az` egy `az.cmd` batch wrapper: a `--query` JMESPath zárójelei elhasalnak rajta (`-o was unexpected at this time`). Kerüld meg `-o json | ConvertFrom-Json`-nal és client-side szűréssel, ez token-takarékosabb is.
 - **Read szabad, write engedélyköteles.** A `list`/`show`/`query` biztonságos. A mutáló parancs, `az pipelines run` / `build queue` (valódi deployt indíthat!), `az repos pr create/update/set-vote`, `az boards work-item create/update/delete`, repo vagy service endpoint létrehozás/törlés, **csak explicit engedéllyel**, ugyanaz a modell, mint a [[git-conventions]] push-policy és a [[terraform-terragrunt]] `apply`.
+- **PR review-nál a felhasználó legalább optional reviewer legyen.** Ha egy ADO PR review-ját kéri, és személyesen még nincs a reviewer-listán (se optional, se required, a csoport-reviewer nem számít), vedd fel `az repos pr reviewer add`-dal, ami optional reviewert csinál. Erre állandó engedély van, a kommentelés és a szavazás viszont engedélyköteles marad. Részletek: reference → *PR review*.
 - **PR-komment: a nem-cp1250 karakter az összes ékezetet elviszi.** A thread API resource-neve `pullRequestThreads` (a `threads` névre kapott hiba félrevezetően az `--api-version`-re mutat), a szerkesztés `pullRequestThreadComments`. Az `az` a bodyt a konzol codepage-én kódolja, és **egyetlen** nem-cp1250 karakter (`→`, emoji) az egész tartalom nem-ASCII részét eldobja, a hívás mégis `200`-at ad, tehát csendes adatvesztés. Magyar ékezet és em dash mehet; nyilat/emojit ne tegyél bele. Thread-létrehozásnál a recept: `POST`, majd a valódi szöveg `PATCH`-csel. Ellenőrizni **egyedi** thread GET-tel kell, mert a lista-GET-et egy másik komment emojija is megtisztítja. Lásd [[git-conventions]] a nyelvről és az AI-marker tilalmáról.
 - **Deploy indításnál `-o json`, és a hibaüzenetre NE indíts újra.** A `az pipelines run --output table` `Table output unavailable`-lel elhasal a run-válaszon, **de a run ekkor is létrejön**, ez formázási, nem indítási hiba. Ha erre reagálva újra kiadod a parancsot, **két párhuzamos deploy** fut ugyanarra a Terraform state-re. Ellenőrizd a Runs GET-tel (`az devops invoke … runId=<id>`), ne a `runs list`-tel (az késleltetve indexel). Ugyanez a GET a `templateParameters`-ben megmondja, melyik környezetre ment egy run, ez a leggyorsabb utólagos „mit telepítettek ide" válasz. A `--parameters deploy_dev=true` egyébként **helyesen** template paraméterként megy át (mérve: extension 1.0.5).
 - **A futás metaadata megtéveszt.** A REST API `reason` mezője pipeline-completion triggernél is **`manual`**-t ad, a valódi indítót a `triggerInfo` mező mondja meg (`pipelineTriggerType: PipelineCompletion` vagy `scheduleName`), és a `version`-jében a fogyasztott artifact verzióját is megadja, tehát a job logja nem kell hozzá. Ráadásul az API **késleltetve indexel**: egy épp elindult run nem látszik azonnal a `runs list`-ben, ezért a cron-ablak után 2–4 perccel kérdezz. Ebből a két csapdából egy valódi session-ben két hibás következtetés lett („nem indult el a cron", „kézzel indították").
@@ -43,6 +44,7 @@ A részletes szabály a `references/azure-devops-cli.md`-ben van. **Olvasd be a 
 | "Van telepítve?" / setup / 401 | Előfeltétel-ellenőrzés, Authentikáció |
 | Parancs elhasal PowerShellben | PowerShell quoting trap (+ További wrapper-csapdák) |
 | PR nyitás/leírás CLI-ből | További wrapper- és PowerShell-csapdák |
+| PR review-t kérnek (reviewer-felvétel) | Engedélymodell → PR review: a felhasználó legalább optional reviewer |
 | Mit futtathatok kérdés nélkül | Engedélymodell |
 | Repo / PR / pipeline / run lekérdezés | Read-only receptek |
 | Cron/trigger koncepció kipróbálása, lassú feedback loop | Koncepció-validálás temporary change-dzsel |

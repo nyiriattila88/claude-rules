@@ -56,7 +56,7 @@ After linking, `dotnet`, `typescript`, `terraform`, `aws`, `powershell`, `github
 
 | File | Covers |
 |------|--------|
-| `claude-rules-source.md` | Mandatory first-action read + reply marker line. **Always applies.** |
+| `claude-rules-source.md` | Mandatory first-action read + reply marker line, plus a `[Skill betöltve: ...]` header line (`saját` vs. `telepített`) in every turn that loads a skill. An official skill (`aws-core:`) loads next to the custom one, for AWS a `PreToolUse` hook enforces it. **Always applies.** |
 | `claude-meta-rule.md` | How Claude must edit `*.md` rule files in this repo. |
 | `token-economy.md` | **Critical:** minimize token consumption; trade speed (not quality) for fewer tokens; **fan-out / multiple parallel agents need explicit permission (even under ultracode), one `+1` parallel agent is allowed sparingly to save time.** |
 | `context-handoff.md` | **Before the context window runs out, write the state to `CONTEXT-HANDOFF.md`** in the working directory: decisions, what is deployed where with ids, what is in flight, what is blocked. The next context reads it and **deletes it**, because a stale handoff reads as authoritative as a current one. |

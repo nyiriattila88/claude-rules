@@ -20,7 +20,7 @@ Why: `@import` is deterministic but eager (loads everything, always); skills are
 - **`.claude/rules/`** – core `.md` rules, one rule per file (eager import).
 - **`.claude/skills/`** – domain skills: each is a thin `SKILL.md` (trigger + index) over detailed rule files in its `references/` (on-demand).
 - **`.claude/lessons/`** – cross-session lessons: `general.md` (eager) and one file per machine under `workspaces/` (on-demand).
-- **`.claude/hooks/`** – the automation behind the lessons collection: a `SessionStart` hook that injects this machine's lessons, and a `Stop` hook that asks for a sweep once per session.
+- **`.claude/hooks/`** – the automation behind the lessons collection: a `SessionStart` hook that injects this machine's lessons, and a `Stop` hook that asks for a sweep once per session. Next to them, the skill hooks: a `PostToolUse` marker for every skill load and a `PreToolUse` gate that holds AWS calls until the official skills are loaded.
 
 ```
 claude-rules/
@@ -45,9 +45,11 @@ claude-rules/
       general.md                   # eager import
       workspaces/                  # on-demand, one file per machine
         LMSONE-NB03.md
-    hooks/                         # lessons automation (wired per machine)
+    hooks/                         # lessons + skill automation (wired per machine)
       session-start-lessons.ps1
       stop-lessons-sweep.ps1
+      post-tool-use-skill-marker.ps1
+      pre-tool-use-official-skills.ps1
       settings.hooks.example.json
     skills/                        # domain, on-demand
       dotnet/
@@ -136,6 +138,13 @@ A rule can say "record what you learned"; only a hook makes it happen without be
 
 Setup: merge the `hooks` block from [`.claude/hooks/settings.hooks.example.json`](.claude/hooks/settings.hooks.example.json) into `~/.claude/settings.json`, keeping the rest of that file intact, and adjust the absolute script paths to where this repo is cloned. A user-scope `settings.json` normally exists already, so the watcher picks the hooks up immediately, verified: the `Stop` hook fired in the very session that wired it. If they stay silent, start a new session.
 
+## Skill marker and official-skill gate (one-time per machine)
+
+Two more hooks in `.claude/hooks/` make skill loading visible and, for AWS, mandatory. They come from the same example file and go into the same `~/.claude/settings.json`:
+
+- **`post-tool-use-skill-marker.ps1`** on `PostToolUse` for the `Skill` tool, shows every load as a harness message, `Skill betöltve: <name> (saját|telepített)`. `saját` means the `SKILL.md` is under a `.claude/skills/` folder. The prefix alone cannot tell, because the skills that ship with Claude Code are unprefixed too.
+- **`pre-tool-use-official-skills.ps1`** on `PreToolUse`, denies `aws` CLI calls (`Bash` and `PowerShell`, narrowed by `if`) and `aws-mcp` tool calls until the session transcript shows both `aws` and an `aws-core:` skill loaded. It reads the transcript itself, so it does not depend on the marker hook, and it counts a skill typed as `/name` too. A new domain is one more entry in its `$Domains` table plus the matching `if` filters in the settings.
+
 Both scripts are **UTF-8 with BOM on purpose**: Windows PowerShell 5.1 reads a BOM-less script as ANSI and mangles every accented string. Keep the BOM when editing them.
 
 ## Using with a symlink (recommended)
@@ -214,7 +223,7 @@ A skill's `SKILL.md` should stay a thin dispatcher (trigger + an index of which 
 - `.claude/rules/shell-path-conversion.md` was added as a standalone core rule because the corruption it describes is **silent** and not tied to one tool: Git Bash rewrites any `/`-leading argument, so the empty result can come from `aws`, `az`, `kubectl` or `gh` alike, and no skill trigger reliably covers all of them. It is eagerly imported because the failure looks like valid evidence, an empty result set, and acting on it can mean deleting a live resource.
 - `.claude/rules/git-identity.md` was added as a standalone core rule because *which account* commits is not a Git convention but an identity fact, and getting it wrong is expensive in two different ways: a push from the wrong `gh` account fails with a misleading **403** (read as a scope problem, it invites minting a pointless new token), while a **commit** authored by the wrong account is only fixable by rewriting history. It is eagerly imported so the check happens before the first commit, not after the push fails.
 - `.claude/rules/lessons-learned.md` and `.claude/lessons/` were added because this repo is wired into *every* local session, which makes it the only store where knowledge can cross session and project boundaries. It is deliberately separate from the rules: a rule is normative ("always do X"), a lesson is an observation that has not earned that status yet, and the machine-specific half (`workspaces/<COMPUTERNAME>.md`) must not be eagerly imported, because those facts are false on any other box.
-- `.claude/hooks/` exists because the lessons collection had to be **automatic**, and instructions alone cannot do that: a rule is only followed if the model happens to act on it, while a hook is executed by the harness every time. The `SessionStart` half also removes the per-session machine-name lookup and `Read`, so the automation is cheaper in tokens than the manual protocol it replaces.
+- `.claude/hooks/` exists because the lessons collection had to be **automatic**, and instructions alone cannot do that: a rule is only followed if the model happens to act on it, while a hook is executed by the harness every time. The `SessionStart` half also removes the per-session machine-name lookup and `Read`, so the automation is cheaper in tokens than the manual protocol it replaces. The skill hooks follow the same reasoning: the header line only reports what the model remembered to write, and a rule that says "load the official skill" works only when the model happens to follow it.
 - `.claude/skills/jira/` was added as a new skill because Jira issue conventions (which custom field carries the Acceptance Criteria, what shape `Account` and `Team` expect, what the MCP cannot do) did not fit `azure-devops`, Jira and Azure DevOps Boards are separate systems, and are too project-specific and detailed for a core rule.
 - `.claude/skills/powershell/` was added as a new skill because `.claude/lessons/general.md` had grown to 72 entries against the ~40 the `lessons-learned` rule allows, and 21 of them were Windows/PowerShell traps. They are **eagerly imported**, so every session in every project paid for them, while the knowledge itself is task-specific: it only matters when something actually calls a native CLI from PowerShell or writes a file. Promoting the hardened half into a skill and deleting the lesson entries is exactly the path `lessons-learned.md` prescribes. Git and Bash were deliberately **not** moved: `git-conventions`, `git-identity` and `shell-path-conversion` stay core because their failure modes are a bypassed permission or a false negative acted on as evidence, and a skill trigger is a model decision, not a guarantee.
 - `.claude/skills/github/` was added as a new skill because the `gh` CLI has its own failure surface that no existing rule covered: the push **403** that is an active-account problem rather than a scope one, the empty org listing that looks like missing access, and the `!` prefixed credential helper whose shell can fail so that a working token reports `could not read Password`. `git-identity` (core) answers *which* account should push; this skill answers what to do when the push still does not go through. It follows the `azure-devops` skill's shape, which covers the same problem class for the other forge.

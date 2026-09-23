@@ -38,6 +38,75 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\post-tool-use-skill-marker.ps1"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(aws *)",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\pre-tool-use-official-skills.ps1"
+            ],
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(aws *)",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\pre-tool-use-official-skills.ps1"
+            ],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_aws-core_aws-mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\nyiria\\source\\repos\\claude-rules\\.claude\\hooks\\pre-tool-use-official-skills.ps1"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }

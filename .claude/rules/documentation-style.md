@@ -286,6 +286,12 @@ paragraph describes, the subagent, the CI build agent, the Datadog agent. A docu
 AI ügynököknek" therefore shares no word with its own filename. Write `agent`, inflected
 (`agentnek`, `agentek`, `agent-utasítás`).
 
+`child process` is the fifth. "Gyerekfolyamat" is a word-for-word calque that no Hungarian developer
+says out loud, and the shortened "a gyerek" is worse, because in a sentence about an OOM kill it reads
+as if a child had been killed. The API is `child_process`, the call is `spawn`, the stack trace and every
+Node.js page say `child process`. Write it as such, inflected (`child processben`, `child processt`,
+`child processéből`).
+
 #### ✅ DO
 
 ```text
@@ -298,6 +304,10 @@ A `logType` mező contract a kód és a dashboard között, az átnevezése kiü
 
 ```text
 Az `apps/` alatt az van, amiből artifact lesz: image vagy S3 bundle.
+```
+
+```text
+A generálás egy child processben fut, és a kernel az OOM-nál a child processt lövi ki, nem az API-t.
 ```
 
 #### ❌ DON'T
@@ -320,6 +330,11 @@ Az `apps/` alatt az van, amiből artefaktum lesz: image vagy S3 bundle.
 ```text
 (Rendes magyar szó, és pont ezért siklik át rajta az olvasó, miközben a fájl neve AGENTS.md:)
 # Utasítások AI ügynököknek
+```
+
+```text
+(Tükörfordítás, és a rövidített alakja egy OOM kill mellett kifejezetten félreérthető:)
+A generálás gyerekfolyamatban fut, és a kernel kilőtte a gyereket.
 ```
 
 ## Targets

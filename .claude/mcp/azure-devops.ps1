@@ -56,7 +56,7 @@ public static class AdoMcpCredential
 $target = "azdevops-cli:https://dev.azure.com/$Organization"
 $pat = [AdoMcpCredential]::ReadGeneric($target)
 if (-not $pat) {
-    [Console]::Error.WriteLine("ado-mcp: no '$target' credential in Windows Credential Manager, run az devops login first.")
+    [Console]::Error.WriteLine("azure-devops mcp: no '$target' credential in Windows Credential Manager, run az devops login first.")
     exit 1
 }
 

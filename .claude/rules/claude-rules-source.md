@@ -67,7 +67,7 @@ A plan 2 resource-ot hoz létre, destroy nincs benne.
 
 A custom skill in this repo carries the house rules, an official skill carries the vendor's current guidance, and a task in a domain that has both needs both. Load the matching official skill in the same turn as the custom one, before the first action or answer that relies on it. For AWS that is `aws` plus the `aws-core:` skill that fits the task.
 
-For AWS this is enforced, not only asked: `pre-tool-use-official-skills.ps1` denies every `aws` CLI call and `aws-mcp` tool call until the session transcript shows both loads. A denial is not an obstacle to route around, load the named skills and run the same call again.
+For AWS this is enforced, not only asked: `pre-tool-use-official-skills.ps1` denies every `aws` CLI call and AWS MCP tool call until the session transcript shows both loads. A denial is not an obstacle to route around, load the named skills and run the same call again.
 
 ## ✅ DO
 

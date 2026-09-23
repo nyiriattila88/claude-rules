@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 $Domains = @(
     @{
         Name     = 'AWS'
-        Tools    = '^mcp__(plugin_aws-core_)?aws-mcp__'
+        Tools    = '^mcp__(aws|plugin_aws-core_aws-mcp)__'
         Command  = '(?m)(^|[;&|({=])\s*(\w+=\S*\s+)*aws(\.exe)?(\s|$)'
         Custom   = 'aws'
         Official = 'aws-core:'

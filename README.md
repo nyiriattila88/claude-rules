@@ -52,7 +52,7 @@ claude-rules/
       pre-tool-use-official-skills.ps1
       settings.hooks.example.json
     mcp/                           # MCP server launchers (wired per machine)
-      ado-mcp.ps1
+      azure-devops.ps1
     skills/                        # domain, on-demand
       dotnet/
         SKILL.md
@@ -145,18 +145,35 @@ Setup: merge the `hooks` block from [`.claude/hooks/settings.hooks.example.json`
 Two more hooks in `.claude/hooks/` make skill loading visible and, for AWS, mandatory. They come from the same example file and go into the same `~/.claude/settings.json`:
 
 - **`post-tool-use-skill-marker.ps1`** on `PostToolUse` for the `Skill` tool, shows every load as a harness message, `Skill betöltve: <name> (saját|telepített)`. `saját` means the `SKILL.md` is under a `.claude/skills/` folder. The prefix alone cannot tell, because the skills that ship with Claude Code are unprefixed too.
-- **`pre-tool-use-official-skills.ps1`** on `PreToolUse`, denies `aws` CLI calls (`Bash` and `PowerShell`, narrowed by `if`) and `aws-mcp` tool calls until the session transcript shows both `aws` and an `aws-core:` skill loaded. It reads the transcript itself, so it does not depend on the marker hook, and it counts a skill typed as `/name` too. A new domain is one more entry in its `$Domains` table plus the matching `if` filters in the settings.
+- **`pre-tool-use-official-skills.ps1`** on `PreToolUse`, denies `aws` CLI calls (`Bash` and `PowerShell`, narrowed by `if`) and AWS MCP tool calls (the plugin's server and the user-scope `aws` one) until the session transcript shows both `aws` and an `aws-core:` skill loaded. It reads the transcript itself, so it does not depend on the marker hook, and it counts a skill typed as `/name` too. A new domain is one more entry in its `$Domains` table plus the matching `if` filters in the settings.
 
 ## MCP servers for Azure DevOps and AWS (one-time per machine)
 
-`.claude/mcp/ado-mcp.ps1` starts Microsoft's local Azure DevOps MCP server with the PAT that `az devops login` already keeps in Windows Credential Manager, so the token never lands in a config file. The remote ADO server would need a custom Entra app registration for Claude Code, the local one does not. For AWS, AWS's own `mcp-proxy-for-aws` signs every request with SigV4 from the SSO cache. The `aws-core` plugin's server runs unsigned when no default profile exists, so it only serves documentation.
+An MCP server gives Claude Code typed tools for a platform, named `mcp__<server>__<tool>`. The `<server>` part is chosen at registration, and here it follows one rule: **the platform name, the same as the matching skill, with no `-mcp` suffix**, because every tool name already starts with `mcp__`. So `azure-devops`, `aws` and `atlassian`. A plugin's own server keeps its plugin-scoped name (`plugin:aws-core:aws-mcp`), that one cannot be renamed.
+
+| Server | What runs where | Credentials |
+|---|---|---|
+| `azure-devops` | [`.claude/mcp/azure-devops.ps1`](.claude/mcp/azure-devops.ps1) starts Microsoft's local server (`@azure-devops/mcp`, version pinned in its `-Version` default) on this machine | the PAT that `az devops login` keeps in Windows Credential Manager, read at start and handed only to the child process |
+| `aws` | AWS's `mcp-proxy-for-aws` runs locally and forwards to the managed AWS MCP Server in Frankfurt, which runs the tools, `aws___run_script` in an AWS-side sandbox | SigV4, signed from the same SSO session the `aws` CLI uses |
+
+The remote Azure DevOps server would need a custom Microsoft Entra app registration for Claude Code, the local one does not. The `aws-core` plugin's server runs unsigned when no default profile exists, so it only serves documentation.
 
 ```bash
-claude mcp add --scope user --transport stdio ado -- powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '<repo>\.claude\mcp\ado-mcp.ps1' -Organization <org>
-MSYS_NO_PATHCONV=1 claude mcp add --scope user --transport stdio aws-mcp -- uvx mcp-proxy-for-aws@1.6.3 https://aws-mcp.eu-central-1.api.aws/mcp --region eu-central-1 --profile <read-only profiles> --metadata AWS_REGION=eu-central-1 --skip-auth
+claude mcp add --scope user --transport stdio azure-devops -- powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '<repo>\.claude\mcp\azure-devops.ps1' -Organization <org>
+MSYS_NO_PATHCONV=1 claude mcp add --scope user --transport stdio aws -- uvx mcp-proxy-for-aws@1.6.3 https://aws-mcp.eu-central-1.api.aws/mcp --region eu-central-1 --profile <read-only profiles> --metadata AWS_REGION=eu-central-1 --skip-auth
 ```
 
-Both start slowly (tens of seconds), so `~/.claude/settings.json` sets `env.MCP_TIMEOUT` to `120000`. Read-only IAM roles keep the AWS server safe, `--read-only` would hide `aws___run_script`, the one tool that reaches the account. The ADO write tools sit under `permissions.ask`, and the official-skill gate covers `mcp__aws-mcp__*` too.
+`--scope user` writes both servers into `~/.claude.json`, so they exist in every project and nothing machine-specific is versioned here. The rest lives in `~/.claude/settings.json`:
+
+- **`env.MCP_TIMEOUT` = `120000`.** Both servers need tens of seconds to start, up to about a minute cold, and the default limit is 30 s. `claude mcp list` may still report the AWS one as `tools fetch failed`, its health check waits less than a session does.
+- **`permissions.ask`** lists the Azure DevOps write tools (`mcp__azure-devops__*_write`, `repo_create_branch`, `wiki_upsert_page`), so they always ask.
+- **The official-skill gate** matches `mcp__aws__*` as well.
+
+**Read-only by IAM, not by flag.** `--read-only` would hide `aws___run_script`, the one tool that reaches the account, so the profiles passed to `--profile` use read-only IAM roles instead.
+
+**The AWS server needs a live SSO session.** When the SSO session ends, the server does not even start (`TokenRetrievalError`, `-32602` in `claude mcp list`) until `aws sso login` and a new session. `--skip-auth` does not cover this, it only lets a machine with no credentials at all serve documentation unsigned. A working `aws sts get-caller-identity` proves nothing here, the CLI lives on its cached role credentials a while longer.
+
+Changes take effect in the next session, because MCP servers are connected at session start.
 
 Both scripts are **UTF-8 with BOM on purpose**: Windows PowerShell 5.1 reads a BOM-less script as ANSI and mangles every accented string. Keep the BOM when editing them.
 

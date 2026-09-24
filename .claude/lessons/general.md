@@ -197,6 +197,9 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-23, CloudWatch „no data" ott, ahol 0 kellene:** az ALB és a log metric filterek esemény nélküli periódusra
   nem publikálnak adatpontot, a widget üres. A `FILL(m, 0)` akkor is nullát ad, ha a metrikának egyetlen pontja sincs (a `PERIOD()`
   skalár, az osztás is marad), log panelen a `filter` helyett `stats sum(feltétel)` kell. Latenciát ne tölts ki nullával.
+- **2026-09-24, nagy szöveg átírása tool-inputba: a homoglif szemre láthatatlan:** egy 28 ezer karakteres Confluence body
+  átírásába egy cirill `к` került a latin `k` helyére (`Enneк`), és visszaolvasva semmi nem árulta el. Feltöltés után az
+  elküldött inputot a session JSONL-jéből bájtra vesd össze a forrásfájllal, és keress benne nem-latin betűt.
 
 ## Windows & PowerShell
 

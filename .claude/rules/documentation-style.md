@@ -272,30 +272,30 @@ it, yet it costs exactly what every other translated term costs: the code, the A
 chat stop sharing one word, and a search for `contract` no longer finds the paragraph that explains the
 contract. Write `contract` wherever the meaning is an interface others depend on, a shared package, a
 schema, a log field name, a key prefix, a table's attribute names. Hungarian inflection is expected and
-fine (`a contract`, `contractja`, `contractot`), the same as with every other adopted term.
+fine (`a contract`, `contract-ja`, `contract-ot`), the same as with every other adopted term.
 
 The Terraform `state` is the same case: "állapot" is a perfectly good word and still the wrong one.
 
 `artifact` is the third: "artefaktum" reads as educated Hungarian, and it is a calque. A build output,
 a container image, an S3 bundle is an artifact in every pipeline, every log and every ticket, so the
-prose that describes them says `artifact` too, with Hungarian inflection (`artifactot`, `artifactok`).
+prose that describes them says `artifact` too, with Hungarian inflection (`artifact-ot`, `artifact-ok`).
 
 `agent` is the fourth, and the easiest one to miss, because "ügynök" is not a calque but an ordinary
 Hungarian word with a meaning of its own. Everything around it is spelled `agent`: the `AGENTS.md` the
 paragraph describes, the subagent, the CI build agent, the Datadog agent. A document titled "Utasítások
 AI ügynököknek" therefore shares no word with its own filename. Write `agent`, inflected
-(`agentnek`, `agentek`, `agent-utasítás`).
+(`agent-nek`, `agent-ek`, `agent-utasítás`).
 
 `child process` is the fifth. "Gyerekfolyamat" is a word-for-word calque that no Hungarian developer
 says out loud, and the shortened "a gyerek" is worse, because in a sentence about an OOM kill it reads
 as if a child had been killed. The API is `child_process`, the call is `spawn`, the stack trace and every
-Node.js page say `child process`. Write it as such, inflected (`child processben`, `child processt`,
-`child processéből`).
+Node.js page say `child process`. Write it as such, inflected (`child process-ben`, `child process-t`,
+`child process-éből`).
 
 #### ✅ DO
 
 ```text
-A job sor contractját a `render-jobs` csomag írja le: állapotnevek, attribútumnevek, feltételek.
+A job sor contract-ját a `render-jobs` csomag írja le: állapotnevek, attribútumnevek, feltételek.
 ```
 
 ```text
@@ -307,7 +307,7 @@ Az `apps/` alatt az van, amiből artifact lesz: image vagy S3 bundle.
 ```
 
 ```text
-A generálás egy child processben fut, és a kernel az OOM-nál a child processt lövi ki, nem az API-t.
+A generálás egy child process-ben fut, és a kernel az OOM-nál a child process-t lövi ki, nem az API-t.
 ```
 
 #### ❌ DON'T
@@ -341,9 +341,11 @@ A generálás gyerekfolyamatban fut, és a kernel kilőtte a gyereket.
 
 A term that stays English also keeps its English **spelling**. Writing it the way it is pronounced
 (`progressz`, `kessel`) is a translation in disguise: a search for `progress` no longer finds it, and it
-reads as neither English nor Hungarian. The Hungarian suffix attaches directly where that reads
-naturally (`contractot`, `agentnek`), and with a hyphen where the English ending would otherwise be
-distorted or swallowed (`progress-t`, `cache-elve`).
+reads as neither English nor Hungarian. The Hungarian suffix **always** attaches with a hyphen:
+`progress-t`, `contract-ot`, `job-ot`, `token-t`, `build-et`, `deployment-et`. The instrumental doubles
+the consonant after the hyphen (`prompt-tal`, `token-nel`), and a final `a` stays as it is written
+(`Lambda-t`, `Lambda-n`, not `Lambdát`). A Hungarian verb built on an English root is a Hungarian word
+and stays joined: `renderel`, `deployol`, `commitol`.
 
 The rule is about ad hoc phonetic spellings. Words that have long been part of everyday Hungarian
 (`fájl`, `szerver`) are not affected.
@@ -351,11 +353,15 @@ The rule is about ad hoc phonetic spellings. Words that have long been part of e
 #### ✅ DO
 
 ```text
-A Remotion aláírt webhookja jelenti a befejezést, a progress-t pedig egy olvasás kérdezi ki.
+A Remotion aláírt webhook-ja jelenti a befejezést, a progress-t pedig egy olvasás kérdezi ki.
 ```
 
 ```text
 A render contract SSM-ből jön, TTL-lel cache-elve.
+```
+
+```text
+A job-ot a task a Lambda-n futtatja, a token-t a header-ben küldi, prompt-tal is.
 ```
 
 #### ❌ DON'T
@@ -368,6 +374,51 @@ A Remotion aláírt webhookja jelenti a befejezést, a progresszt pedig egy olva
 ```text
 (Ugyanez a cache-sel:)
 A render contract SSM-ből jön, TTL-lel kesselve.
+```
+
+```text
+(Egybeírt toldalékok: a határ nem látszik, hol ér véget az angol szó:)
+A jobot a task a Lambdán futtatja, a tokent a headerben küldi, prompttal is.
+```
+
+### The terms corrected so far
+
+Each of these was corrected in a real document, so each is a trap that has already been walked into.
+Write the left column, with the suffix the spelling rule above gives it:
+
+| Write | Not |
+|---|---|
+| `request` (`request-et`, `request-enként`) | kérés, for an HTTP request |
+| `root` (`root-ban`, `root-ból`) | gyökér, for a repository or a tree |
+| `structured logging` | strukturált logolás |
+| `edge` | él, él-szintű: it reads as the edge of a graph |
+| `deployable unit` | a bare `deployable` used as a noun |
+| `progress` (`progress-t`) | progressz |
+| `composition` (`composition-t`, `composition-ök`) | kompozíció |
+
+A person's request stays `kérés`: the rule is about the HTTP request, the thing that has a method, a
+path and a status code.
+
+#### ✅ DO
+
+```text
+Structured logging Pino-val, egy teljes sorral request-enként.
+```
+
+```text
+Két deployable unit egy repóból. A lockfile a root-ban van.
+```
+
+#### ❌ DON'T
+
+```text
+(Három fordítás egy sorban, és egyiket sem találja meg, aki a kódban használt szóra keres:)
+Strukturált logolás Pino-val, egy teljes sorral kérésenként. A lockfile a gyökérben van.
+```
+
+```text
+(Az „edge" tükörfordítása, amit az olvasó egy gráf éleként ért, és nem tudja megfejteni:)
+Él-szintű authorizer nincs.
 ```
 
 ## Targets

@@ -200,8 +200,12 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-24, nagy szöveg átírása tool-inputba: a homoglif szemre láthatatlan:** egy 28 ezer karakteres Confluence body
   átírásába egy cirill `к` került a latin `k` helyére (`Enneк`), és visszaolvasva semmi nem árulta el. Feltöltés után az
   elküldött inputot a session JSONL-jéből bájtra vesd össze a forrásfájllal, és keress benne nem-latin betűt.
+- **2026-09-24, SQS-triggerelt Lambda `ReportBatchItemFailures`-szel: az `Errors` metrika 0, miközben minden rekord bukik:**
+  a függvény a `batchItemFailures` listával sikeresen tér vissza, így egy teljes QA-kiesés alatt sem jött riasztás, és a hiba
+  a fogadó félnek látszott. A feldolgozást az SQS `NumberOfMessagesSent` és `NumberOfMessagesDeleted` különbsége és a DLQ mélysége mutatja.
 - **2026-09-24, beállítások wall-clock összevetése: beállításonként egy futás nem mérés.** Egyszeri futásokból a 200 chunk „lassabb" volt a 180-nál, felváltva ismételve nem, és egy 60 perces render teljes ideje ugyanazzal a beállítással 97 és 190 s között szórt, attól függően, melyik időszakba esett. Felváltva, ismételve futtass, és a fázisidőket (itt a Remotion `timeToFinishChunks`) vesd össze, ne csak a végösszeget, mert egy nem felváltott összevetésben az időszak hatása a beállításénak látszik.
 - **2026-09-24, Atlassian MCP `403 The app is not installed on this instance`:** minden Confluence-hívás ezt adta, és a `getAccessibleAtlassianResources` üres `scopes` listát mutatott, ami site-oldali app-eltávolításnak látszik. A connector újra-authorizálása (`/mcp`) megoldotta, admin nem kellett hozzá.
+- **2026-09-24, a desktop app `/` menüje nem mutatja a `~/.claude/skills` skilljeit, pedig a Claude Code felkínálja őket:** az app saját binárisa (2.1.280) és a CLI (2.1.245) `init`-jének `slash_commands` listájában is ott volt mind a 11, a menüben (desktop 2.7032) egy sem, tehát a hiba a UI-ban van, nem a skillekben vagy a junctionben. Az `init` modellhívás nélkül kiolvasható: `ANTHROPIC_BASE_URL=http://127.0.0.1:9 claude -p x --output-format stream-json --verbose`, majd a `"subtype":"init"` sor.
 
 ## Windows & PowerShell
 

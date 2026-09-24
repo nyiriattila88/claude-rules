@@ -337,6 +337,39 @@ Az `apps/` alatt az van, amiből artefaktum lesz: image vagy S3 bundle.
 A generálás gyerekfolyamatban fut, és a kernel kilőtte a gyereket.
 ```
 
+### Keep the English spelling too, not only the word
+
+A term that stays English also keeps its English **spelling**. Writing it the way it is pronounced
+(`progressz`, `kessel`) is a translation in disguise: a search for `progress` no longer finds it, and it
+reads as neither English nor Hungarian. The Hungarian suffix attaches directly where that reads
+naturally (`contractot`, `agentnek`), and with a hyphen where the English ending would otherwise be
+distorted or swallowed (`progress-t`, `cache-elve`).
+
+The rule is about ad hoc phonetic spellings. Words that have long been part of everyday Hungarian
+(`fájl`, `szerver`) are not affected.
+
+#### ✅ DO
+
+```text
+A Remotion aláírt webhookja jelenti a befejezést, a progress-t pedig egy olvasás kérdezi ki.
+```
+
+```text
+A render contract SSM-ből jön, TTL-lel cache-elve.
+```
+
+#### ❌ DON'T
+
+```text
+(Kiejtés szerinti átírás: a `progress` keresés nem találja meg, és se nem angol, se nem magyar:)
+A Remotion aláírt webhookja jelenti a befejezést, a progresszt pedig egy olvasás kérdezi ki.
+```
+
+```text
+(Ugyanez a cache-sel:)
+A render contract SSM-ből jön, TTL-lel kesselve.
+```
+
 ## Targets
 
 - C# XML doc on types, methods, properties, fields, parameters.

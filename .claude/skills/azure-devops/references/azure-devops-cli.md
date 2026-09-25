@@ -453,12 +453,13 @@ es a tobbi 2000 karakter csendben elveszett.)
 
 ### PR review: a felhasználó legalább optional reviewer legyen (állandó engedély)
 
-Ha a felhasználó egy Azure DevOps PR review-ját kéri, a review részeként vedd fel **legalább optional reviewernek** a PR-ra. Ez állandó utasítás, ezért erre az egy mutáló lépésre nem kell külön engedélyt kérni. A kommentek feltöltése és a szavazás (`set-vote`) továbbra is engedélyköteles.
+Ha a felhasználó egy Azure DevOps PR review-ját kéri, a review részeként vedd fel **legalább optional reviewernek** a PR-ra. Ez állandó utasítás, ezért erre a mutáló lépésre nem kell külön engedélyt kérni. Ugyanígy állandó engedély a review-kommentek feltöltése: a findingokat kérdés nélkül felteheted a PR-ra, és a válaszban felsorolod, mit tettél fel. A szavazás (`set-vote`) továbbra is engedélyköteles.
 
 - **Ha már rajta van, ne nyúlj hozzá.** Akár optional, akár required reviewerként szerepel, a listát hagyd, ahogy van. Required-ről soha ne fokozd le optionalra, és required-re se emeld magadtól.
 - **A csoport-reviewer nem számít.** Ha csak egy csoport (pl. `[Backend]\Backend Developers`) van a listán, a felhasználót személyesen is fel kell venni.
 - **Csak valódi PR-nál fut.** Lokális branch review-nál nincs PR, nincs mit felvenni.
 - **Jelezd a válaszban**, hogy felvetted, vagy hogy már rajta volt.
+- **Az approve merge-et indíthat.** Ha a szerző auto-complete-et állított be, az utolsó hiányzó approve után a PR azonnal lezárul. Mérve: a 6129 és a 6130 a szavazás után másodperceken belül `completed` lett. Szavazás előtt nézd meg, van-e auto-complete (`autoCompleteSetBy`), és a válaszban mondd ki, ha az approve merge-et indít.
 
 A felhasználó ADO identitása `Nyiri.Attila@nexius.hu`, a `uniqueName` összevetése kis-nagybetű független. Az `az repos pr reviewer add` optional reviewert csinál (lásd az előző szekció 3. pontját), és a list válaszából a `false` értékű `isRequired` kimarad, tehát a hiányzó kulcs optional bejegyzést jelent.
 
@@ -481,6 +482,14 @@ személyesen nem, ezért felvettelek optional reviewernek, és a listából viss
 A 6104-en már required reviewer vagy, a reviewer-listához nem nyúltam.
 ```
 
+```text
+A 6129-en a szerző auto-complete-et állított be, tehát az approve-od azonnal merge-el.
+```
+
+```text
+A review két findingját feltettem a PR-ra (thread 42185 és 42186), szavazni nem szavaztam.
+```
+
 #### ❌ DON'T
 
 ```text
@@ -490,6 +499,14 @@ A 6104-en már required reviewer vagy, a reviewer-listához nem nyúltam.
 ```text
 (Minden PR review előtt külön engedélyt kérek a felvételre, pedig erre állandó utasítás van,
 vagy a már required felhasználót magamtól optionalra írom át.)
+```
+
+```text
+(Approve-olok, és csak utána derül ki, hogy a PR ettől lezárult, mert auto-complete volt rajta.)
+```
+
+```text
+(A review végén megkérdezem, feltehetem-e a kommenteket, pedig erre állandó engedély van.)
 ```
 
 ## Resource authorization: új pipeline semmit nem örököl

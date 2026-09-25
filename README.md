@@ -166,7 +166,7 @@ MSYS_NO_PATHCONV=1 claude mcp add --scope user --transport stdio aws -- uvx mcp-
 `--scope user` writes both servers into `~/.claude.json`, so they exist in every project and nothing machine-specific is versioned here. The rest lives in `~/.claude/settings.json`:
 
 - **`env.MCP_TIMEOUT` = `120000`.** Both servers need tens of seconds to start, up to about a minute cold, and the default limit is 30 s. `claude mcp list` may still report the AWS one as `tools fetch failed`, its health check waits less than a session does.
-- **`permissions.ask`** lists the Azure DevOps write tools (`mcp__azure-devops__*_write`, `repo_create_branch`, `wiki_upsert_page`), so they always ask.
+- **`permissions.ask`** lists the Azure DevOps write tools (`mcp__azure-devops__*_write`, `repo_create_branch`, `wiki_upsert_page`), so they always ask. The exception is `repo_pull_request_thread_write`, which is in `permissions.allow`: posting review comments during a PR review is a standing permission, so it does not prompt.
 - **The official-skill gate** matches `mcp__aws__*` as well.
 
 **Read-only by IAM, not by flag.** `--read-only` would hide `aws___run_script`, the one tool that reaches the account, so the profiles passed to `--profile` use read-only IAM roles instead.

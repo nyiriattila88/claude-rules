@@ -213,6 +213,18 @@ Machine-specific facts do not go here; they belong in `.claude/lessons/workspace
 - **2026-09-25, DynamoDB TTL kikapcsolása Terraformmal: az `attribute_name` akkor is kell:** a `ttl { enabled = false }` a `validate`-en és a planen is átment, az apply viszont `ValidationException`-nel bukott (`attributeName` üres), mert az `UpdateTimeToLive` a kikapcsoláshoz is kéri a nevet. A provider forrása ezt kimondja: `attribute_name = "<a régi>"` mellé `enabled = false`.
 - **2026-09-25, egy mockolt DynamoDB kliens nem ismeri a `ProjectionExpression`-t:** a listázó Scan-ből kimaradt egy új mező, a unit tesztek mégis zöldek voltak, mert a mock a kért projekciótól függetlenül a teljes item-et adta vissza. Csak az élő DEV-hívás mutatta meg. A projekciót a válasz-sémához mérd tesztben, ne a mock kimenetéhez.
 - **2026-09-25, pnpm: egy függőség eltávolítása sem csak törlés a lockfile-ban:** a `pnpm install --no-frozen-lockfile` közben két tranzitív duplikátumot is összevont (`jose` 6.2.9 → 6.2.12 egy másik app alatt, `picomatch` 4.0.5 → 4.0.7), tehát egy másik deployable fája is változott. Eltávolítás után is olvasd végig a diff `+` sorait, és mondd ki, ami nem törlés.
+- **2026-09-25, `aws s3api list-objects-v2 --query KeyCount` lapozott kimenetben `None`, üres és teli prefixre is:**
+  a CLI összefűzi a lapokat, és a `KeyCount` kimarad, tehát a `None` nem nulla. A törlést egy kontroll-prefix
+  mellett a `Contents` hosszával mérd (itt 0 a törölt, 32 a kontroll), ne egy összesítő mezővel.
+- **2026-09-25, draw.io 31.x CLI: a `--page-index` 1-alapú (27.0.2 óta):** a 0 `Invalid page index`-szel bukik, az
+  1..n pedig eggyel eltolt oldalt ír a fájlba, hiba nélkül, mert a script `>/dev/null 2>&1`-gyel nyelte a kimenetet.
+  Csak a PNG mérete árulta el. Export után nézd meg a képet, és a hibakimenetet ne dobd el.
+- **2026-09-25, Fastify: az `additionalProperties: false` az ismeretlen body-mezőt eldobja, nem `400`:** a Fastify Ajv-je
+  `removeAdditional: true`-val fut, így egy átnevezett mező régi nevén küldött értéke csendben elveszik. A `400`-at
+  ne feltételezd, teszttel mérd, és egy mezőátnevezésnél mondd ki a hívóknak.
+- **2026-09-25, a „bemásoltam a friss tokent" után a fájlt ellenőrizd, mielőtt használod:** kétszer egymás után a régi,
+  lejárt token volt benne: egyszer a fájl el volt mentve, egyszer az mtime sem változott. A JWT `iat`-je és a fájl mtime-ja két
+  hívás alatt kideríti, a token kiírása nélkül.
 
 ## Windows & PowerShell
 
